@@ -225,6 +225,26 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .dchip{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:12.5px;color:var(--muted);box-shadow:var(--sh)}
 .dchip[aria-current="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-2)}
 .mrow select{width:auto;padding:8px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13.5px}
+.taskstack{display:flex;flex-direction:column;gap:12px}
+.taskblock{border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;background:var(--surface-2);display:flex;flex-direction:column;gap:9px}
+.taskblock.spec{border-color:var(--gift);background:var(--gift-soft)}
+.taskblock .task{font-size:15px;line-height:1.45;font-weight:600}
+.commentbox{background:var(--plum-soft);color:var(--plum);border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.45}
+.deadline{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:600;line-height:1.4}
+.day-modal{text-align:left;max-width:480px;max-height:86vh;overflow:auto}
+.day-modal::before{content:none!important}
+.revcomment{margin-top:8px;width:100%;font-size:13px}
+.rv-boom{background:rgba(6,11,22,.74)}
+.reveal-modal.rv-big{max-width:460px;animation:mpop .3s cubic-bezier(.2,.8,.3,1.1), rvshake .55s ease-in-out .12s}
+@keyframes rvshake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-7px) rotate(-1.2deg)}30%{transform:translateX(7px) rotate(1.2deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.rv-big .rv-orb{width:112px;height:112px;font-size:42px}
+.rv-hype{font-family:var(--sans);font-weight:800;font-size:27px;line-height:1.05;letter-spacing:.01em;text-transform:uppercase;background:linear-gradient(90deg,var(--brand),var(--plum));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:4px;animation:hypein .45s cubic-bezier(.2,.9,.3,1.5) both}
+.reveal-modal.spec .rv-hype{background:linear-gradient(90deg,var(--gift),#B7791F);-webkit-background-clip:text;background-clip:text}
+@keyframes hypein{0%{transform:scale(.3) rotate(-8deg);opacity:0}70%{transform:scale(1.18) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.rv-go{justify-content:center;font-size:15px;font-weight:800;padding:11px 20px;width:100%}
+.rv-emojis{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+.rv-emojis i{position:absolute;top:-12%;font-style:normal;animation:efall linear forwards}
+@keyframes efall{0%{opacity:0;transform:translateY(-30px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(420px) rotate(var(--r))}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -267,7 +287,7 @@ if(!UI.poolDir)UI.poolDir='СРБ';
 /* ---------- данные с сервера ---------- */
 let S = {settings:null, managers:[], entries:[], reg:[], sp:[]};
 let byMgr = {};   // managerId -> {dayIndex -> entry}
-let loading=true, pendingShot=null;
+let loading=true, pendingShots={};
 
 /* ---------- helpers ---------- */
 const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
@@ -283,22 +303,32 @@ function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
 function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini}}
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
 
-function entryOf(mgrId, dayIdx){return (byMgr[mgrId]&&byMgr[mgrId][dayIdx])||null}
+let entByMgr={};
 function rebuildIndex(){
-  byMgr={};
-  S.entries.forEach(e=>{(byMgr[e.manager_id]=byMgr[e.manager_id]||{})[e.day_index]=e});
+  byMgr={}; entByMgr={};
+  S.entries.forEach(e=>{
+    const mm=byMgr[e.manager_id]=byMgr[e.manager_id]||{};
+    (mm[e.day_index]=mm[e.day_index]||{})[e.kind]=e;
+    (entByMgr[e.manager_id]=entByMgr[e.manager_id]||[]).push(e);
+  });
+}
+function dayEntries(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];if(!d)return [];const a=[];if(d.regular)a.push(d.regular);if(d.special)a.push(d.special);return a}
+function entryOf(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];return d?(d.regular||d.special||null):null}
+function pastDeadline(){
+  if(S.settings&&S.settings.today_override)return false;   // тест-режим — без дедлайна
+  const now=new Date();
+  const yektH=new Date(now.getTime()+now.getTimezoneOffset()*60000+5*3600000).getHours();
+  return yektH>=20;   // после 20:00 по Екатеринбургу
 }
 function statsOf(m){
-  let points=0,gifts=0,missed=0,doneDays=0,elapsed=0,pending=0;
-  const eff=effToday();
-  workdays().forEach((iso,i)=>{
-    if(iso>eff)return; elapsed++;
-    const e=entryOf(m.id,i);
-    if(e&&e.review==='approved'){doneDays++; if(e.kind==='special')gifts++; else points++;}
-    else if(e&&e.review==='pending')pending++;
-    if(iso<eff && !(e&&e.review==='approved'))missed++;
+  let points=0,gifts=0,missed=0,pending=0,tasksDone=0,tasksElapsed=0;
+  const eff=effToday(), arr=entByMgr[m.id]||[];
+  arr.forEach(e=>{ if(e.edate>eff)return; tasksElapsed++;
+    if(e.review==='approved'){tasksDone++; if(e.kind==='special')gifts++; else points++;}
+    else if(e.review==='pending')pending++;
+    if(e.edate<eff && e.review!=='approved')missed++;
   });
-  return{points,gifts,missed,doneDays,elapsed,pending};
+  return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
 }
 function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
 function standings(){
@@ -363,7 +393,8 @@ async function act(fn,args,okMsg){
 }
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
-  empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно'})[code]||'Не получилось'}
+  empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно',
+  deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -402,7 +433,7 @@ function render(){
   else if(UI.view==='admin')body=viewAdmin();
   root.innerHTML=header()+nav()+body+
     '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
-  const shot=$('#shotInput'); if(shot)shot.addEventListener('change',onShotPick);
+  root.querySelectorAll('.shotinput').forEach(inp=>inp.addEventListener('change',onShotPick));
   const lg=root.querySelector('.leaf img');
   if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
     lg.onerror=fb; if(lg.complete&&lg.naturalWidth===0)fb();}
@@ -511,13 +542,14 @@ function statusPill(e){
   return '<span class="pill reg">Открыл</span>';
 }
 function todayCard(m,idx){
-  const e=entryOf(m.id,idx),{col,ini}=avatar(m);
-  const spec=e&&e.kind==='special';
+  const ents=dayEntries(m.id,idx),{col,ini}=avatar(m);
+  const e=ents.find(x=>x.kind==='regular')||ents[0];
+  const hasBonus=ents.some(x=>x.kind==='special');
   const opened=e&&e.opened_at;
   const body=opened?'<div class="task">'+esc(e.task_text)+'</div>':'<div class="task locktask">🔒 Ячейка ещё не открыта</div>';
-  return '<div class="card tcard '+(spec?'spec':'')+'"><div class="hd"><div class="ava" style="background:'+col+'">'+ini+'</div>'
-    +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc(m.team||'')+'</div></div></div>'
-    +body+'<div class="foot">'+statusPill(e)+(spec&&opened?'<span class="pill spec">🎁 Особая</span>':'')+'</div></div>';
+  return '<div class="card tcard"><div class="hd"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+    +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</div></div></div>'
+    +body+'<div class="foot">'+statusPill(e)+(hasBonus?'<span class="pill spec">🎁 +бонус</span>':'')+'</div></div>';
 }
 
 /* ---- CABINET ---- */
@@ -536,29 +568,31 @@ function viewCabinet(){
 function cabinetInner(m,isOwner){
   const s=statsOf(m),info=contestInfo();
   const cells=workdays().map((iso,i)=>{
-    const e=entryOf(m.id,i),eff=effToday();
+    const ents=dayEntries(m.id,i),eff=effToday();
     const rel=iso<eff?'past':(iso===eff?'today':'future');
-    const spec=e&&e.kind==='special';
-    let cls='cell '+rel+(spec?' spec':''),ic='';
+    const hasSpec=ents.some(e=>e.kind==='special');
+    const showSpec=hasSpec&&rel!=='future';           // #4: бонус скрыт на будущих днях
+    let cls='cell '+rel+(showSpec?' spec':''),ic='';
+    const opened=ents.some(e=>e.opened_at);
+    const allAppr=ents.length>0&&ents.every(e=>e.review==='approved');
+    const anyPend=ents.some(e=>e.review==='pending');
     if(rel==='future')ic='🔒';
     else if(rel==='today'){
-      if(e&&e.review==='approved'){cls+=' done-today';ic='✓'}
-      else if(e&&e.review==='pending'){cls+=' review-today';ic='⏳'}
-      else if(e&&e.opened_at){ic=spec?'🎁':'•'}
+      if(allAppr){cls+=' done-today';ic='✓'}
+      else if(anyPend){cls+=' review-today';ic='⏳'}
+      else if(opened){ic=showSpec?'🎁':'•'}
       else cls+=' pulse';
     }else{ // past
-      if(e&&e.review==='approved'){cls+=' done';ic='✓'}
-      else if(e&&e.review==='pending'){cls+=' review';ic='⏳'}
+      if(allAppr){cls+=' done';ic='✓'}
+      else if(anyPend){cls+=' review';ic='⏳'}
       else{cls+=' miss';ic='✕'}
     }
-    const openLab=(rel==='today'&&isOwner&&!(e&&e.opened_at))?'<span class="open-lab">Открыть</span>':'';
-    const canClick=(rel==='today'&&isOwner);
-    const attrs=canClick?'data-action="open-cell" data-eid="'+(e?e.id:'')+'"':'disabled';
+    const attrs=(rel!=='future')?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
     return '<button class="'+cls+'" style="grid-column-start:'+parseISO(iso).getDay()+'" '+attrs+' title="'+fmtLong(iso)+'"><div><div class="d">'+fmtD(iso)+'</div></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-end">'+openLab+'<div class="ic">'+ic+'</div></div></button>';
+      +'<div style="display:flex;justify-content:flex-end;align-items:flex-end"><div class="ic">'+ic+'</div></div></button>';
   }).join('');
   const cal='<div class="card cal"><h3>Календарь · '+esc(m.full_name)+'</h3>'
-    +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — особая задача на подарок'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
+    +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — есть бонус-задание · нажми на день, чтобы посмотреть'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
     +'<div class="cal-week"><span class="cal-wd">Пн</span><span class="cal-wd">Вт</span><span class="cal-wd">Ср</span><span class="cal-wd">Чт</span><span class="cal-wd">Пт</span></div>'
     +'<div class="cells">'+cells+'</div></div>';
   return cal+todayPanel(m,s,info,isOwner);
@@ -568,41 +602,78 @@ function todayPanel(m,s,info,isOwner){
   if(info.phase!=='live'||info.idx<0){
     card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">'+(info.phase==='before'?'Конкурс скоро стартует':info.phase==='after'?'Конкурс завершён':'Сегодня выходной')+'</div></div>';
   }else{
-    const e=entryOf(m.id,info.idx),spec=e&&e.kind==='special';
-    if(!e){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
-    else if(!e.opened_at){
-      card='<div class="reveal hidden"><div class="lockart">🎁</div><div class="big">Задача на сегодня скрыта</div>'
-        +(isOwner?'<div class="note">Открой ячейку '+fmtLong(e.edate)+', чтобы узнать задание дня.</div><button class="btn primary" data-action="open-cell" data-eid="'+e.id+'">Открыть ячейку дня</button>'
-                 :'<div class="note">Менеджер ещё не открыл ячейку.</div>')+'</div>';
-    }else{
-      const badge=spec?'<span class="pill spec">🎁 Особая задача — подарок</span>':'<span class="pill reg">Ежедневная задача — +1 балл</span>';
-      let block;
-      if(e.review==='approved')block='<span class="pill done">✓ '+(spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
-      else if(e.review==='pending')block='<span class="pill review">⏳ На проверке у руководителя</span>'+(isOwner?reportForm(e,'Изменить отчёт'):reportView(e));
-      else block=(isOwner?(e.review==='rejected'?'<span class="pill miss">Отклонено — отправь заново</span>':'')+reportForm(e,'Отправить на проверку'):reportView(e));
-      card='<div class="reveal pop '+(spec?'spec':'')+'">'+badge+'<div class="task">'+esc(e.task_text)+'</div>'+block+'</div>';
-    }
+    const ents=dayEntries(m.id,info.idx);
+    if(!ents.length){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
+    else{card='<div class="taskstack">'+ents.map(e=>taskBlock(e,isOwner)).join('')+'</div>';}
   }
-  return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задача дня</div></div>'
+  return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задачи дня</div></div>'
     +card+'<div class="mini"><div class="box"><div class="n">'+s.points+'</div><div class="l">баллов</div></div>'
     +'<div class="box"><div class="n">🎁 '+s.gifts+'</div><div class="l">подарков</div></div>'
     +'<div class="box"><div class="n">'+s.doneDays+'/'+s.elapsed+'</div><div class="l">выполнено</div></div></div></div>';
 }
+function taskBlock(e,interactive){
+  const spec=e.kind==='special', eff=effToday();
+  const rel=e.edate<eff?'past':(e.edate===eff?'today':'future');
+  const badge=spec?'<span class="pill spec">🎁 Бонус — подарок</span>':'<span class="pill reg">Ежедневная — +1 балл</span>';
+  let inner='';
+  const locked=!e.opened_at && rel!=='past';        // прошлые дни раскрываем всегда
+  if(locked){
+    inner=interactive
+      ?'<div class="note">Нажми, чтобы открыть задание дня.</div><button class="btn primary sm" data-action="open-cell" data-eid="'+e.id+'">Открыть '+(spec?'бонус 🎁':'задачу')+'</button>'
+      :'<div class="locktask">🔒 Ещё не открыта</div>';
+  }else{
+    inner='<div class="task">'+esc(e.task_text)+'</div>';
+    if(e.review==='approved'){
+      inner+='<span class="pill done">✓ '+(spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
+      if(e.review_comment)inner+=commentBox(e.review_comment);
+    }else if(e.review==='pending'){
+      inner+='<span class="pill review">⏳ На проверке у руководителя</span>';
+      inner+= (interactive&&rel==='today')?deadlineOrForm(e,'Обновить отчёт'):reportView(e);
+    }else if(rel==='past'){
+      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено</span>';if(e.review_comment)inner+=commentBox(e.review_comment);inner+=reportView(e);}
+      else inner+='<span class="pill miss">✕ Не зачтено</span>';
+    }else{ // today, none/rejected
+      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено — переделай</span>';if(e.review_comment)inner+=commentBox(e.review_comment);}
+      inner+= interactive?deadlineOrForm(e,'Отправить на проверку'):reportView(e);
+    }
+  }
+  return '<div class="taskblock '+(spec?'spec':'')+'">'+badge+inner+'</div>';
+}
+function deadlineOrForm(e,label){
+  if(pastDeadline())return '<div class="deadline">⏰ Приём отчётов закрыт: после 20:00 по Екатеринбургу сдать нельзя.</div>'+reportView(e);
+  return reportForm(e,label);
+}
+function commentBox(txt){return '<div class="commentbox">💬 <b>Руководитель:</b> '+esc(txt)+'</div>';}
 function reportForm(e,btnLabel){
+  const id=e.id;
   return '<div class="field" style="margin:4px 0 0"><label>Отчёт о выполнении</label>'
-    +'<textarea id="repText" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
-    +'<div class="field" style="margin:0"><label>Ссылка на подтверждение (CRM, диск) — необязательно</label>'
-    +'<input id="repLink" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
-    +'<label class="filelabel">📎 Скриншот<input type="file" id="shotInput" accept="image/*"></label>'
-    +'<div id="shotPrev">'+(e.screenshot_url?'<img class="shot-prev" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
-    +'<button class="btn good" data-action="submit-report" data-eid="'+e.id+'" style="margin-top:4px">'+btnLabel+'</button>';
+    +'<textarea id="rt_'+id+'" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
+    +'<div class="field" style="margin:0"><label>Ссылка на подтверждение — необязательно</label>'
+    +'<input id="rl_'+id+'" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
+    +'<label class="filelabel">📎 Скриншот<input type="file" class="shotinput" data-eid="'+id+'" accept="image/*"></label>'
+    +'<div id="sp_'+id+'">'+(e.screenshot_url?'<img class="shot-prev" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
+    +'<button class="btn good" data-action="submit-report" data-eid="'+id+'" style="margin-top:4px">'+btnLabel+'</button>';
 }
 function reportView(e){
   let h='';
   if(e.report_text)h+='<div class="rt" style="white-space:pre-wrap;font-size:14px;margin-top:6px">'+esc(e.report_text)+'</div>';
   if(e.report_link)h+='<div style="margin-top:6px">'+linkify(e.report_link)+'</div>';
   if(e.screenshot_url)h+='<img class="shot-prev" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
-  return h;
+  return h||'<div class="note">— отчёт не заполнен —</div>';
+}
+function showDayModal(mgrId,dayIdx){
+  const iso=workdays()[dayIdx]; if(iso==null)return;
+  const ents=dayEntries(mgrId,dayIdx);
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="font-size:18px">'+fmtLong(iso)+', '+fmtWD(iso)+'</h3>'
+    +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>';
+  h+= ents.length?'<div class="taskstack">'+ents.map(e=>taskBlock(e,false)).join('')+'</div>':'<div class="note">Заданий нет.</div>';
+  const ov=document.createElement('div');ov.className='reveal-ov';
+  ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-day"]'))close();
+    if(ev.target.closest('[data-action="zoom"]')){const im=ev.target.closest('img');if(im)lightbox(im.getAttribute('src'))}});
+  document.addEventListener('keydown',function ek(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',ek)}});
 }
 
 /* ---- REVIEW (admin) ---- */
@@ -622,6 +693,7 @@ function viewReview(){
       +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
       +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
       +(e.screenshot_url?'<img class="rev-thumb" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
+      +'<textarea id="revc_'+e.id+'" class="revcomment" rows="2" placeholder="Комментарий менеджеру (необязательно) — увидит в кабинете"></textarea>'
       +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
       +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
   }).join('')+'</div>';
@@ -696,6 +768,8 @@ document.addEventListener('click',async e=>{
   if(a==='logout'){AUTH={role:'guest'};UI.view='board';persist();render();return}
   if(a==='open-cab'){ if(AUTH.role==='admin'){UI.view='cabinet';UI.managerId=t.dataset.id;persist();render();scrollTo(0,0);} return}
   if(a==='pick'){UI.managerId=t.dataset.id;persist();render();return}
+  if(a==='view-day'){showDayModal(t.dataset.mid,+t.dataset.day);return}
+  if(a==='close-day')return;
 
   if(a==='do-login-mgr'){
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
@@ -727,18 +801,20 @@ document.addEventListener('click',async e=>{
 
   if(a==='submit-report'){
     const eid=t.dataset.eid;
-    const text=($('#repText')&&$('#repText').value||'').trim();
-    const link=($('#repLink')&&$('#repLink').value||'').trim();
+    if(pastDeadline())return toast('После 20:00 по Екатеринбургу отчёт сдать нельзя');
+    const text=($('#rt_'+eid)&&$('#rt_'+eid).value||'').trim();
+    const link=($('#rl_'+eid)&&$('#rl_'+eid).value||'').trim();
     let shot=null;
-    if(pendingShot){t.disabled=true;t.textContent='Загружаю скриншот…';
-      try{shot=await uploadShot(eid,pendingShot)}catch(err){t.disabled=false;return toast('Не удалось загрузить скриншот')}}
+    if(pendingShots[eid]){t.disabled=true;t.textContent='Загружаю скриншот…';
+      try{shot=await uploadShot(eid,pendingShots[eid])}catch(err){t.disabled=false;return toast('Не удалось загрузить скриншот')}}
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
     if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или скриншот')}
-    pendingShot=null;
+    delete pendingShots[eid];
     return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
   }
 
-  if(a==='review'){return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
+  if(a==='review'){const cEl=$('#revc_'+t.dataset.eid);const comment=cEl?cEl.value.trim():'';
+    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
 
   if(a==='add-mgr'){
     const name=$('#newName').value.trim(), team=$('#newTeam').value.trim(), dir=$('#newDir').value;
@@ -778,8 +854,9 @@ document.addEventListener('change',e=>{
   act('admin_set_settings',{p_token:AUTH.token,p_title:'',p_subtitle:S.settings.subtitle,p_today_override:t.value||'',p_admin_pin:null});
 });
 function onShotPick(e){
-  const f=e.target.files&&e.target.files[0]; if(!f)return; pendingShot=f;
-  const url=URL.createObjectURL(f); const box=$('#shotPrev');
+  const inp=e.target, eid=inp.dataset.eid, f=inp.files&&inp.files[0]; if(!f||!eid)return;
+  pendingShots[eid]=f;
+  const url=URL.createObjectURL(f), box=$('#sp_'+eid);
   if(box)box.innerHTML='<img class="shot-prev" src="'+url+'">';
 }
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
@@ -787,20 +864,30 @@ function showRevealModal(e){
   if(!e)return;
   const spec=e.kind==='special';
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const ov=document.createElement('div');ov.className='reveal-ov';
-  ov.innerHTML='<div class="reveal-modal">'
+  const hypes=spec?['🎁 БОНУС!','ЖИРНЫЙ ЛУТ','ЛОВИ ПОДАРОК','РЕДКИЙ ДРОП']:['ЗАДАЧА ДНЯ','ТВОЙ ХОД','GO GO GO','ВЫЗОВ ПРИНЯТ'];
+  const hype=hypes[Math.floor(Math.random()*hypes.length)];
+  const ov=document.createElement('div');ov.className='reveal-ov rv-boom'+(spec?' spec':'');
+  ov.innerHTML='<div class="reveal-modal rv-big'+(spec?' spec':'')+'">'
+    +'<div class="rv-hype">'+hype+'</div>'
     +'<div class="rv-orb '+(spec?'spec':'')+'">'+(spec?'🎁':fmtD(e.edate))+'</div>'
     +'<div class="rv-content"><div class="rv-eyebrow">'+fmtLong(e.edate)+' · '+fmtWD(e.edate)+'</div>'
-    +'<div class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая задача — подарок':'Задача дня — +1 балл')+'</div>'
+    +'<div class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Бонус — подарок':'Задача дня — +1 балл')+'</div>'
     +'<div class="rv-task">'+esc(e.task_text)+'</div>'
-    +'<button class="btn primary" data-action="close-reveal" style="justify-content:center">Приступить →</button></div>'
-    +'<div class="rv-confetti"></div></div>';
+    +'<button class="btn primary rv-go" data-action="close-reveal">ПОГНАЛИ 🚀</button></div>'
+    +'<div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
   document.body.appendChild(ov);
-  if(!reduce){const c=ov.querySelector('.rv-confetti');const cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8'];
-    for(let i=0;i<18;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=55+Math.random()*100;
+  if(!reduce){
+    const c=ov.querySelector('.rv-confetti');const cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
+    for(let i=0;i<42;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=60+Math.random()*150;
       s.style.setProperty('--x',Math.round(Math.cos(ang*Math.PI/180)*dist)+'px');
       s.style.setProperty('--y',Math.round(Math.sin(ang*Math.PI/180)*dist)+'px');
-      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.18).toFixed(2)+'s';c.appendChild(s);}}
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.25).toFixed(2)+'s';c.appendChild(s);}
+    const em=ov.querySelector('.rv-emojis');const set=spec?['🎁','🎉','✨','💎','🥳','🤑','👑','🔥']:['🔥','💪','🚀','⚡','🎯','💰','🏆','😤','💯'];
+    for(let i=0;i<16;i++){const s=document.createElement('i');s.textContent=set[Math.floor(Math.random()*set.length)];
+      s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.animationDuration=(1.1+Math.random()*0.9).toFixed(2)+'s';
+      s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');
+      s.style.fontSize=(20+Math.random()*16).toFixed(0)+'px';em.appendChild(s);}
+  }
   const close=()=>ov.remove();
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
   document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
