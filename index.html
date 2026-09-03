@@ -229,10 +229,15 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .avaup{cursor:pointer;position:relative;flex:none}
 .avaup input{display:none}
 .avaup::after{content:"✎";position:absolute;right:-3px;bottom:-3px;background:var(--brand);color:#fff;width:15px;height:15px;border-radius:50%;font-size:9px;display:grid;place-items:center;box-shadow:var(--sh)}
-.pill.cat{background:var(--plum-soft);color:var(--plum)}
-.cell.catday::before{content:"";position:absolute;top:0;right:0;border-width:0 22px 22px 0;border-style:solid;border-color:transparent #7C4DBF transparent transparent}
-:root[data-theme="dark"] .cell.catday::before,:root:not([data-theme="light"]) .cell.catday::before{border-color:transparent #A986E0 transparent transparent}
-.taskblock.cat{border-color:#8B5CC7;background:var(--plum-soft)}
+.pill.cat{background:#B3261E;color:#fff;text-transform:uppercase;letter-spacing:.03em;box-shadow:0 0 0 2px rgba(179,38,30,.22)}
+.cell.catday::before{content:"";position:absolute;top:0;right:0;border-width:0 24px 24px 0;border-style:solid;border-color:transparent #D93A2F transparent transparent}
+.cell.catday::after{content:"🐱";position:absolute;top:1px;right:2px;font-size:11px;line-height:1;z-index:2}
+.taskblock.cat{border:2px solid #D93A2F;background:linear-gradient(180deg,rgba(217,58,47,.16),var(--surface));animation:catpulse 1.6s ease-in-out infinite}
+@keyframes catpulse{0%,100%{box-shadow:0 0 0 0 rgba(217,58,47,.4)}50%{box-shadow:0 0 0 6px rgba(217,58,47,0)}}
+.catwarn{background:#B3261E;color:#fff;border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:700;line-height:1.45}
+.catwarn b{text-decoration:underline}
+.catgive{border:1.5px solid #D93A2F!important;color:#fff!important;background:#B3261E!important;font-weight:800!important;box-shadow:var(--sh)!important}
+.catgive:hover{background:#9E1F18!important}
 .reassign-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin-top:10px}
 .reassign-list button{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-weight:600;font-size:13.5px;text-align:left}
 .reassign-list button:hover{border-color:var(--brand);background:var(--brand-soft)}
@@ -246,6 +251,11 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .day-modal::before{content:none!important}
 .revcomment{margin-top:8px;width:100%;font-size:13px}
 .rv-boom{background:rgba(6,11,22,.74)}
+.cat-boom{background:rgba(28,5,5,.82)}
+.reveal-modal.cat{border-color:#D93A2F;box-shadow:0 0 0 3px rgba(217,58,47,.35),var(--sh-lg)}
+.reveal-modal.rv-big.cat .rv-orb{background:radial-gradient(120% 120% at 30% 20%,#E85141,#7A130C);box-shadow:0 14px 34px -8px rgba(217,58,47,.6)}
+.reveal-modal.cat .rv-hype{background:linear-gradient(90deg,#E85141,#B3261E);-webkit-background-clip:text;background-clip:text;color:transparent}
+.reveal-modal.rv-big.cat{animation:mpop .3s cubic-bezier(.2,.8,.3,1.1), rvshake .5s ease-in-out .12s 2}
 .reveal-modal.rv-big{max-width:460px;animation:mpop .3s cubic-bezier(.2,.8,.3,1.1), rvshake .55s ease-in-out .12s}
 @keyframes rvshake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-7px) rotate(-1.2deg)}30%{transform:translateX(7px) rotate(1.2deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
 .rv-big .rv-orb{width:112px;height:112px;font-size:42px}
@@ -639,7 +649,7 @@ function taskBlock(e,interactive){
   const eff=effToday();
   const rel=e.edate<eff?'past':(e.edate===eff?'today':'future');
   const cat=e.kind==='cat', spec=e.kind==='special';
-  const badge=cat?'<span class="pill cat">🐱 Кот в мешке · +2 / −2</span>'
+  const badge=cat?'<span class="pill cat">🐱 КОТ В МЕШКЕ · +2 / −2</span>'
     :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
     :'<span class="pill reg">Ежедневная — +1 балл</span>';
   const blockcls=cat?'cat':(spec?'spec':'');
@@ -651,6 +661,7 @@ function taskBlock(e,interactive){
       :'<div class="locktask">🔒 Ещё не открыта</div>';
   }else{
     inner='<div class="task">'+esc(e.task_text)+'</div>';
+    if(cat)inner+='<div class="catwarn">⚠️ Супер-сложное задание. Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Можно один раз скинуть кота другому.</div>';
     if(e.review==='approved'){
       inner+='<span class="pill done">✓ '+(cat?'Зачтено +2 балла':spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
       if(e.review_comment)inner+=commentBox(e.review_comment);
@@ -666,8 +677,8 @@ function taskBlock(e,interactive){
     }
     if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
       inner+= (e.reassigns_left||0)>0
-        ?'<button class="btn ghost sm" data-action="reassign-cat" data-eid="'+e.id+'" style="border-color:#8B5CC7;color:var(--plum)">🐱 Отдать другому (1 раз)</button>'
-        :'<div class="note">Переназначение уже использовано.</div>';
+        ?'<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'">🫳 Скинуть кота другому (1 раз)</button>'
+        :'<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
     }
   }
   return '<div class="taskblock '+blockcls+'">'+badge+inner+'</div>';
@@ -946,27 +957,38 @@ let reassignOv=null;
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
 function showRevealModal(e){
   if(!e)return;
-  const spec=e.kind==='special';
+  const spec=e.kind==='special', cat=e.kind==='cat';
+  const variant=cat?'cat':(spec?'spec':'');
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const hypes=spec?['🎁 БОНУС!','ЖИРНЫЙ ЛУТ','ЛОВИ ПОДАРОК','РЕДКИЙ ДРОП']:['ЗАДАЧА ДНЯ','ТВОЙ ХОД','GO GO GO','ВЫЗОВ ПРИНЯТ'];
+  const hypes=cat?['😱 КОТ В МЕШКЕ','ОПАСНОЕ ЗАДАНИЕ','НЕ ПРОВАЛИ','−2 ЗА ПРОВАЛ']
+    :spec?['🎁 БОНУС!','ЖИРНЫЙ ЛУТ','ЛОВИ ПОДАРОК','РЕДКИЙ ДРОП']
+    :['ЗАДАЧА ДНЯ','ТВОЙ ХОД','GO GO GO','ВЫЗОВ ПРИНЯТ'];
   const hype=hypes[Math.floor(Math.random()*hypes.length)];
-  const ov=document.createElement('div');ov.className='reveal-ov rv-boom'+(spec?' spec':'');
-  ov.innerHTML='<div class="reveal-modal rv-big'+(spec?' spec':'')+'">'
+  const orb=cat?'🐱':(spec?'🎁':fmtD(e.edate));
+  const pill=cat?'<span class="pill cat">🐱 КОТ В МЕШКЕ · +2 / −2</span>'
+    :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
+    :'<span class="pill reg">Задача дня — +1 балл</span>';
+  const warn=cat?'<div class="catwarn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>':'';
+  const btn=cat?'ПРИНЯТЬ ВЫЗОВ 😼':'ПОГНАЛИ 🚀';
+  const ov=document.createElement('div');ov.className='reveal-ov rv-boom'+(cat?' cat-boom':spec?' spec':'');
+  ov.innerHTML='<div class="reveal-modal rv-big '+variant+'">'
     +'<div class="rv-hype">'+hype+'</div>'
-    +'<div class="rv-orb '+(spec?'spec':'')+'">'+(spec?'🎁':fmtD(e.edate))+'</div>'
+    +'<div class="rv-orb '+variant+'">'+orb+'</div>'
     +'<div class="rv-content"><div class="rv-eyebrow">'+fmtLong(e.edate)+' · '+fmtWD(e.edate)+'</div>'
-    +'<div class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Бонус — подарок':'Задача дня — +1 балл')+'</div>'
-    +'<div class="rv-task">'+esc(e.task_text)+'</div>'
-    +'<button class="btn primary rv-go" data-action="close-reveal">ПОГНАЛИ 🚀</button></div>'
+    +pill
+    +'<div class="rv-task">'+esc(e.task_text)+'</div>'+warn
+    +'<button class="btn primary rv-go" data-action="close-reveal">'+btn+'</button></div>'
     +'<div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
   document.body.appendChild(ov);
   if(!reduce){
-    const c=ov.querySelector('.rv-confetti');const cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
+    const c=ov.querySelector('.rv-confetti');
+    const cols=cat?['#D93A2F','#B3261E','#7A130C','#E85141','#3a0a06']:['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
     for(let i=0;i<42;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=60+Math.random()*150;
       s.style.setProperty('--x',Math.round(Math.cos(ang*Math.PI/180)*dist)+'px');
       s.style.setProperty('--y',Math.round(Math.sin(ang*Math.PI/180)*dist)+'px');
       s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.25).toFixed(2)+'s';c.appendChild(s);}
-    const em=ov.querySelector('.rv-emojis');const set=spec?['🎁','🎉','✨','💎','🥳','🤑','👑','🔥']:['🔥','💪','🚀','⚡','🎯','💰','🏆','😤','💯'];
+    const em=ov.querySelector('.rv-emojis');
+    const set=cat?['🐱','😱','🔥','💀','⚠️','😾','🙀','💣']:spec?['🎁','🎉','✨','💎','🥳','🤑','👑','🔥']:['🔥','💪','🚀','⚡','🎯','💰','🏆','😤','💯'];
     for(let i=0;i<16;i++){const s=document.createElement('i');s.textContent=set[Math.floor(Math.random()*set.length)];
       s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.animationDuration=(1.1+Math.random()*0.9).toFixed(2)+'s';
       s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');
