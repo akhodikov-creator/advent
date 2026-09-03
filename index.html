@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Адвент продаж</title>
+<style>
+/* =====================================================================
+   ⚙️  НАСТРОЙКА: вставь сюда данные своего проекта Supabase
+   (Project Settings → API → Project URL и anon public key)
+   Строки CONFIG находятся ниже, в <script>. Ищи "ВСТАВЬ_СЮДА".
+   ===================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+:root{
+  --bg:#EDF3FB; --surface:#FBFCFE; --surface-2:#E2ECF8; --raise:#FFFFFF;
+  --ink:#122238; --muted:#59708C; --faint:#9DB0C7; --line:#D2E0F0;
+  --brand:#1E6FE0; --brand-2:#1556B4; --brand-soft:#DCEAFC;
+  --plum:#243F86; --plum-soft:#DEE6F8;
+  --good:#2E7A52; --good-soft:#DBEBDF; --warn:#C0492F; --warn-soft:#F6E0D8;
+  --gift:#9A6B12; --gift-soft:#F4E7C6;
+  --glow:rgba(30,111,224,.28);
+  --sh:0 1px 2px rgba(18,34,56,.06),0 8px 24px -12px rgba(18,34,56,.20);
+  --sh-lg:0 2px 4px rgba(18,34,56,.07),0 24px 48px -20px rgba(18,34,56,.32);
+  --r:14px; --r-sm:9px;
+  --sans:-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; --serif:Georgia,'Iowan Old Style','Times New Roman',serif; --mono:'Cascadia Code',Consolas,'SF Mono',ui-monospace,monospace;
+}
+:root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
+  --bg:#0C1521; --surface:#13202F; --surface-2:#1B2B3F; --raise:#1E3047;
+  --ink:#E7EEF8; --muted:#94A8C0; --faint:#5F7288; --line:#26384F;
+  --brand:#4D97F5; --brand-2:#82B6F8; --brand-soft:#17293F;
+  --plum:#7C9BE6; --plum-soft:#1E2C46;
+  --good:#54B683; --good-soft:#1B2E22; --warn:#E5896A; --warn-soft:#331f18;
+  --gift:#E4C061; --gift-soft:#332a10;
+  --glow:rgba(77,151,245,.30);
+  --sh:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6);
+  --sh-lg:0 2px 4px rgba(0,0,0,.4),0 28px 56px -22px rgba(0,0,0,.7);
+}}
+:root[data-theme="dark"]{
+  --bg:#0C1521; --surface:#13202F; --surface-2:#1B2B3F; --raise:#1E3047;
+  --ink:#E7EEF8; --muted:#94A8C0; --faint:#5F7288; --line:#26384F;
+  --brand:#4D97F5; --brand-2:#82B6F8; --brand-soft:#17293F;
+  --plum:#7C9BE6; --plum-soft:#1E2C46;
+  --good:#54B683; --good-soft:#1B2E22; --warn:#E5896A; --warn-soft:#331f18;
+  --gift:#E4C061; --gift-soft:#332a10;
+  --glow:rgba(77,151,245,.30);
+  --sh:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6);
+  --sh-lg:0 2px 4px rgba(0,0,0,.4),0 28px 56px -22px rgba(0,0,0,.7);
+}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;font-size:15px}
+#root{max-width:1120px;margin:0 auto;padding:22px 20px 80px}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600;text-wrap:balance;letter-spacing:-.01em}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.brandmark{display:flex;align-items:center;gap:12px}
+.leaf{width:48px;height:48px;border-radius:12px;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--sh);overflow:hidden}
+.leaf img{width:100%;height:100%;object-fit:contain;padding:5px;display:block}
+.leaf .mono{display:none;width:100%;height:100%;place-items:center;font-family:var(--serif);font-weight:700;font-size:24px;background:linear-gradient(135deg,var(--brand),var(--plum));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tt h1{font-size:clamp(22px,3.4vw,30px);line-height:1.02}
+.tt .sub{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:700;margin-top:4px}
+.daychip{font-family:var(--mono);font-size:12px;background:var(--surface);border:1px solid var(--line);padding:9px 13px;border-radius:99px;box-shadow:var(--sh);white-space:nowrap;color:var(--muted)}
+.daychip b{color:var(--ink)}
+.theme-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;box-shadow:var(--sh);font-size:16px}
+.authbox{display:flex;gap:8px;align-items:center}
+.authchip{font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line);padding:8px 13px;border-radius:99px;box-shadow:var(--sh);display:inline-flex;gap:7px;align-items:center}
+.ribbon{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 18px;box-shadow:var(--sh);display:flex;align-items:center;gap:18px;margin-bottom:8px;flex-wrap:wrap}
+.ribbon .bar{flex:1;min-width:180px;height:9px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.ribbon .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--brand),var(--plum))}
+.ribbon .lab{font-size:12.5px;color:var(--muted);font-weight:600}
+.ribbon .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+.testchip{font-size:11.5px;font-weight:700;color:var(--gift);background:var(--gift-soft);padding:6px 11px;border-radius:99px;display:inline-flex;gap:6px;align-items:center}
+.nav{display:flex;gap:6px;background:var(--surface-2);padding:5px;border-radius:12px;margin:20px 0 22px;width:fit-content;box-shadow:inset 0 1px 2px rgba(0,0,0,.04);flex-wrap:wrap}
+.nav button{padding:9px 18px;border-radius:8px;font-weight:700;font-size:14px;color:var(--muted);transition:.15s;position:relative}
+.nav button[aria-current="true"]{background:var(--raise);color:var(--ink);box-shadow:var(--sh)}
+.nav button:hover:not([aria-current="true"]){color:var(--ink)}
+.badge{background:var(--brand);color:#fff;font-size:11px;font-weight:800;border-radius:99px;padding:1px 7px;margin-left:6px;font-family:var(--mono)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:26px 2px 12px}
+.section-h h2{font-size:19px}
+.section-h .hint{font-size:12.5px;color:var(--muted)}
+.seg{display:inline-flex;gap:4px;background:var(--surface-2);padding:4px;border-radius:9px}
+.seg button{padding:6px 14px;border-radius:6px;font-weight:700;font-size:13px;color:var(--muted)}
+.seg button[aria-current="true"]{background:var(--raise);color:var(--ink);box-shadow:var(--sh)}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.pill.reg{background:var(--brand-soft);color:var(--brand-2)}
+.pill.spec{background:var(--gift-soft);color:var(--gift)}
+.pill.done{background:var(--good-soft);color:var(--good)}
+.pill.miss{background:var(--warn-soft);color:var(--warn)}
+.pill.wait{background:var(--surface-2);color:var(--muted)}
+.pill.review{background:var(--plum-soft);color:var(--plum)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-weight:700;font-size:13.5px;border:1px solid var(--line);background:var(--raise);box-shadow:var(--sh);transition:.15s;color:var(--ink)}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn.primary{background:var(--brand);color:#fff;border-color:transparent}
+.btn.ghost{background:transparent;box-shadow:none}
+.btn.good{background:var(--good);color:#fff;border-color:transparent}
+.btn.danger{border-color:var(--warn);color:var(--warn)}
+.btn.sm{padding:6px 11px;font-size:12.5px}
+.lb{display:flex;flex-direction:column;overflow:hidden}
+.lb-row{display:grid;grid-template-columns:46px 1fr auto auto;gap:14px;align-items:center;padding:13px 18px;border-top:1px solid var(--line)}
+.lb-row:first-child{border-top:none}
+.lb-row.top{background:linear-gradient(90deg,var(--brand-soft),transparent 60%)}
+.rank{font-family:var(--serif);font-size:22px;font-weight:600;color:var(--faint);text-align:center;line-height:1}
+.lb-row.top .rank{color:var(--brand)}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+.ava{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:none;box-shadow:var(--sh)}
+.who .nm{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who .tm{font-size:12px;color:var(--muted)}
+.who button.nm{text-align:left}.who button.nm:hover{color:var(--brand)}
+.score{text-align:right}
+.score .n{font-family:var(--mono);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.score .u{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.gifts{font-size:13px;color:var(--gift);font-weight:700;white-space:nowrap;min-width:44px;text-align:right}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.tcard{padding:16px 17px;display:flex;flex-direction:column;gap:11px}
+.tcard .hd{display:flex;align-items:center;gap:10px}
+.tcard .hd .nm{font-weight:700;font-size:14.5px}
+.tcard .hd .tm{font-size:11.5px;color:var(--muted)}
+.tcard .task{font-size:14px;line-height:1.45;flex:1}
+.tcard.spec{border-color:var(--gift);background:linear-gradient(180deg,var(--gift-soft),var(--surface) 40%)}
+.tcard .foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.locktask{color:var(--faint);font-style:italic;font-size:13.5px;display:flex;align-items:center;gap:7px}
+.pickwrap{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pick{display:inline-flex;align-items:center;gap:8px;padding:7px 12px 7px 8px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:13.5px;box-shadow:var(--sh);transition:.15s}
+.pick .ava{width:26px;height:26px;border-radius:8px;font-size:12px}
+.pick[aria-current="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-2)}
+.cab{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;align-items:start}
+@media(max-width:820px){.cab{grid-template-columns:1fr}}
+.cal{padding:18px}
+.cal h3{font-size:16px;margin-bottom:2px}
+.cal .csub{font-size:12.5px;color:var(--muted);margin-bottom:16px}
+.cells{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;grid-auto-flow:row}
+.cal-week{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:9px}
+.cal-wd{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+@media(max-width:520px){.cells,.cal-week{gap:6px}.cell{padding:7px 8px}.cell .d{font-size:17px}}
+.cell{position:relative;aspect-ratio:1;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;justify-content:space-between;padding:9px 10px;overflow:hidden;transition:.18s;text-align:left}
+.cell .d{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+.cell .wd{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700}
+.cell .ic{font-size:16px;align-self:flex-end}
+.cell.future{color:var(--faint)}.cell.future .d{color:var(--faint)}
+.cell.past.done{background:var(--good-soft);border-color:transparent}.cell.past.done .d{color:var(--good)}
+.cell.past.review{background:var(--plum-soft);border-color:transparent}.cell.past.review .d{color:var(--plum)}
+.cell.past.miss{background:repeating-linear-gradient(135deg,var(--surface-2),var(--surface-2) 7px,transparent 7px,transparent 14px);opacity:.75}
+.cell.spec::before{content:"";position:absolute;top:0;right:0;border-width:0 22px 22px 0;border-style:solid;border-color:transparent var(--gift) transparent transparent}
+.cell.today{cursor:pointer;background:var(--raise);border-color:var(--brand);box-shadow:0 0 0 3px var(--glow),var(--sh)}
+.cell.today .d{color:var(--brand)}
+.cell.today.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px var(--glow),var(--sh)}50%{box-shadow:0 0 0 7px var(--glow),var(--sh)}}
+.cell.today:hover{transform:translateY(-2px)}
+.cell .open-lab{font-size:10.5px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.05em}
+.cell.done-today{background:var(--good-soft);border-color:var(--good)}.cell.done-today .d{color:var(--good)}
+.cell.review-today{background:var(--plum-soft);border-color:var(--plum)}.cell.review-today .d{color:var(--plum)}
+.panel{padding:18px;display:flex;flex-direction:column;gap:14px;position:sticky;top:16px}
+.panel .eyebrow{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.13em;color:var(--muted)}
+.panel .big{font-family:var(--serif);font-size:19px;line-height:1.2}
+.reveal{border:1px dashed var(--line);border-radius:var(--r-sm);padding:16px;background:var(--surface-2);display:flex;flex-direction:column;gap:12px}
+.reveal.spec{border-style:solid;border-color:var(--gift);background:var(--gift-soft)}
+.reveal .task{font-size:15.5px;line-height:1.5;font-weight:600}
+.reveal.hidden{align-items:center;text-align:center;gap:14px;padding:26px 16px}
+.reveal .lockart{font-size:34px}
+.mini{display:flex;gap:10px}
+.mini .box{flex:1;background:var(--surface-2);border-radius:var(--r-sm);padding:11px 13px}
+.mini .box .n{font-family:var(--mono);font-weight:700;font-size:22px;line-height:1}
+.mini .box .l{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+@keyframes pop{0%{transform:scale(.96);opacity:0}100%{transform:scale(1);opacity:1}}
+.pop{animation:pop .28s cubic-bezier(.2,.8,.3,1.1)}
+input,select,textarea{font-family:inherit;font-size:14px;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);width:100%}
+textarea{resize:vertical;line-height:1.5;font-size:14px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.field label{font-size:12.5px;font-weight:700;color:var(--muted)}
+.filelabel{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px dashed var(--line);border-radius:8px;background:var(--surface-2);font-weight:700;font-size:13px;cursor:pointer;color:var(--muted)}
+.filelabel input{display:none}
+.shot-prev{max-width:100%;border-radius:8px;border:1px solid var(--line);margin-top:4px}
+.adm{display:flex;flex-direction:column;gap:20px}
+.adm .card{padding:18px}.adm h3{font-size:16px;margin-bottom:12px}
+.mrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.mrow:first-of-type{border-top:none}
+.mrow .ava{width:30px;height:30px;border-radius:8px;font-size:12px}
+.mrow input{width:auto}
+.pinbadge{font-family:var(--mono);font-weight:700;background:var(--brand-soft);color:var(--brand-2);padding:4px 9px;border-radius:7px;font-size:13px}
+.row2{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end}
+@media(max-width:640px){.row2{grid-template-columns:1fr}}
+.note{font-size:12.5px;color:var(--muted);line-height:1.55}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-family:var(--serif);font-size:20px;color:var(--ink);margin:10px 0 6px}
+.rev-item{padding:15px 17px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;border-top:1px solid var(--line)}
+.rev-item:first-child{border-top:none}
+.rev-body{min-width:0}
+.rev-body .rt{font-size:14px;line-height:1.5;white-space:pre-wrap;margin:6px 0}
+.rev-body a{color:var(--brand-2);font-weight:600;word-break:break-all}
+.rev-thumb{max-width:120px;max-height:90px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+.rev-actions{display:flex;flex-direction:column;gap:6px}
+.login-wrap{max-width:420px;margin:6vh auto 0}
+.login-card{padding:26px}
+.login-card h2{font-size:22px;margin-bottom:4px}
+.login-card .note{margin-bottom:18px}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-weight:700;font-size:13.5px;box-shadow:var(--sh-lg);z-index:50;opacity:0;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.foot-note{margin-top:40px;text-align:center;font-size:12px;color:var(--faint)}
+.spinner{width:34px;height:34px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--brand);animation:spin .8s linear infinite;margin:60px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:60;padding:20px}
+.lightbox img{max-width:100%;max-height:100%;border-radius:10px}
+.reveal-ov{position:fixed;inset:0;background:rgba(10,20,35,.62);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);display:grid;place-items:center;z-index:70;padding:20px;animation:fadein .2s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.reveal-modal{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--sh-lg);max-width:440px;width:100%;padding:30px 26px 26px;text-align:center;overflow:hidden;animation:mpop .3s cubic-bezier(.2,.8,.3,1.1)}
+@keyframes mpop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+.rv-orb{width:96px;height:96px;border-radius:26px;margin:2px auto 2px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:34px;color:#fff;background:radial-gradient(120% 120% at 30% 20%,var(--brand),var(--plum));box-shadow:0 14px 34px -8px var(--glow);animation:orbpop .6s cubic-bezier(.2,.9,.3,1.35) both;position:relative;z-index:2}
+.rv-orb.spec{background:radial-gradient(120% 120% at 30% 20%,var(--gift),#B7791F);font-size:44px}
+@keyframes orbpop{0%{transform:scale(.2) rotate(-18deg);opacity:0}60%{transform:scale(1.12) rotate(6deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+.reveal-modal::before{content:"";position:absolute;top:56px;left:50%;width:200px;height:200px;transform:translate(-50%,-50%);background:radial-gradient(circle,var(--glow),transparent 68%);opacity:0;z-index:1;animation:glowb .9s ease-out both;pointer-events:none}
+@keyframes glowb{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}40%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.3)}}
+.rv-content{position:relative;z-index:2;display:flex;flex-direction:column;gap:12px;align-items:center;margin-top:12px;animation:rvin .42s ease-out .4s both}
+@keyframes rvin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.rv-eyebrow{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.rv-task{font-family:var(--serif);font-size:20px;line-height:1.32;font-weight:600;color:var(--ink);text-wrap:balance}
+.rv-confetti{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
+.rv-confetti i{position:absolute;left:50%;top:34%;width:9px;height:9px;border-radius:2px;opacity:0;animation:conf .95s ease-out forwards}
+@keyframes conf{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(240deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><div class="spinner"></div></div>
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   ⚙️  CONFIG — ВСТАВЬ_СЮДА данные проекта Supabase (кавычки оставь):
+   ===================================================================== */
+const SUPABASE_URL      = "https://kererpumgfdtozrzgdod.supabase.co";   // напр. https://abcdxyz.supabase.co
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtlcmVycHVtZ2ZkdG96cnpnZG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNDE2MzksImV4cCI6MjEwMzkxNzYzOX0.chbx5MZGMmHvWuAVRQ4eJJoXiSBzZevoFP1emW9UOjY";   // длинный ключ "anon public"
+/* ===================================================================== */
+
+const root = document.getElementById('root');
+const $ = (s,r)=>(r||document).querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+if(SUPABASE_URL==="ВСТАВЬ_СЮДА"||SUPABASE_ANON_KEY==="ВСТАВЬ_СЮДА"){
+  root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Почти готово 🛠️</h2>'
+    +'<div class="note">Открой файл <b>index.html</b> и в блоке CONFIG (вверху &lt;script&gt;) вставь '
+    +'<b>Project URL</b> и <b>anon public key</b> из своего проекта Supabase '
+    +'(Project Settings → API). После этого обнови страницу.</div></div></div>';
+  return;
+}
+
+let sb = null;
+
+/* ---------- локальное состояние (не на сервере) ---------- */
+const UI = load('advUI', {view:'board', lbTab:'people', managerId:null});
+let AUTH = load('advAuth', {role:'guest'});
+function load(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}}
+function persist(){try{localStorage.setItem('advUI',JSON.stringify(UI));localStorage.setItem('advAuth',JSON.stringify(AUTH))}catch(e){}}
+
+/* ---------- данные с сервера ---------- */
+let S = {settings:null, managers:[], entries:[], reg:[], sp:[]};
+let byMgr = {};   // managerId -> {dayIndex -> entry}
+let loading=true, pendingShot=null;
+
+/* ---------- helpers ---------- */
+const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const MON=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+const AVCOL=['#C15E17','#6E2E48','#2E7A52','#345995','#8A5A20','#9C4A6B','#3E7B7B','#A2543A'];
+function parseISO(iso){const[y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d)}
+function fmtD(iso){return parseISO(iso).getDate()}
+function fmtWD(iso){return WD[parseISO(iso).getDay()]}
+function fmtLong(iso){const dt=parseISO(iso);return dt.getDate()+' '+MON[dt.getMonth()]}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function workdays(){return (S.settings&&S.settings.workdays)||[]}
+function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
+function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini}}
+function linkify(t){return esc(t).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
+
+function entryOf(mgrId, dayIdx){return (byMgr[mgrId]&&byMgr[mgrId][dayIdx])||null}
+function rebuildIndex(){
+  byMgr={};
+  S.entries.forEach(e=>{(byMgr[e.manager_id]=byMgr[e.manager_id]||{})[e.day_index]=e});
+}
+function statsOf(m){
+  let points=0,gifts=0,missed=0,doneDays=0,elapsed=0,pending=0;
+  const eff=effToday();
+  workdays().forEach((iso,i)=>{
+    if(iso>eff)return; elapsed++;
+    const e=entryOf(m.id,i);
+    if(e&&e.review==='approved'){doneDays++; if(e.kind==='special')gifts++; else points++;}
+    else if(e&&e.review==='pending')pending++;
+    if(iso<eff && !(e&&e.review==='approved'))missed++;
+  });
+  return{points,gifts,missed,doneDays,elapsed,pending};
+}
+function standings(){
+  return S.managers.map(m=>({m,s:statsOf(m)}))
+    .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
+}
+function teamStandings(){
+  const map={};
+  S.managers.forEach(m=>{const t=m.team||'—';(map[t]=map[t]||{team:t,points:0,gifts:0,n:0,done:0});
+    const s=statsOf(m);map[t].points+=s.points;map[t].gifts+=s.gifts;map[t].n++;map[t].done+=s.doneDays;});
+  return Object.values(map).sort((a,b)=>b.points-a.points||b.gifts-a.gifts);
+}
+function contestInfo(){
+  const eff=effToday(),wds=workdays(),idx=wds.indexOf(eff),elapsed=wds.filter(d=>d<=eff).length;
+  let phase='live'; if(!wds.length)phase='before'; else if(eff<wds[0])phase='before'; else if(eff>wds[wds.length-1])phase='after';
+  return{idx,elapsed,total:wds.length,phase};
+}
+function pendingCount(){let n=0;S.entries.forEach(e=>{if(e.review==='pending')n++});return n}
+
+/* ---------- сервер ---------- */
+async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error)throw error;return data}
+async function loadAll(){
+  try{
+    const data=await rpc('bootstrap');           // один запрос вместо шести
+    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.entries=data.entries||[];
+  }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
+    const [st,mg,rg,sp,en]=await Promise.all([
+      sb.from('app_settings').select('*').eq('id',1).single(),
+      sb.from('managers').select('id,full_name,team,seat,active').eq('active',true).order('seat'),
+      sb.from('pool_regular').select('*').order('ord'),
+      sb.from('pool_special').select('*').order('ord'),
+      sb.from('entries').select('*')
+    ]);
+    if(st.error)throw st.error;
+    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.entries=en.data||[];
+  }
+  rebuildIndex(); loading=false; cacheSave();
+}
+function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,entries:S.entries}))}catch(e){}}
+function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
+  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
+let reloadT;
+function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(render).catch(()=>{}),400)}
+function subscribeRealtime(){
+  sb.channel('advent')
+    .on('postgres_changes',{event:'*',schema:'public',table:'entries'},scheduleReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'managers'},scheduleReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'app_settings'},scheduleReload)
+    .subscribe();
+  setInterval(()=>{if(!document.hidden)loadAll().then(render).catch(()=>{})},25000); // подстраховка
+}
+
+let toastT;
+function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400)}
+
+async function act(fn,args,okMsg){
+  try{const r=await rpc(fn,args);
+    if(r&&r.ok===false){toast(errMsg(r.err));return null}
+    await loadAll();render(); if(okMsg)toast(okMsg); return r;
+  }catch(e){toast('Ошибка сети, попробуйте ещё раз');console.error(e);return null}
+}
+function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
+  not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
+  empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно'})[code]||'Не получилось'}
+
+/* ---------- скриншот: сжатие + загрузка ---------- */
+function compress(file){
+  return new Promise((res,rej)=>{
+    const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{const max=1400;let{width:w,height:h}=img;
+      if(w>max||h>max){const k=Math.min(max/w,max/h);w=Math.round(w*k);h=Math.round(h*k)}
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
+}
+async function uploadShot(entryId,file){
+  const blob=await compress(file);
+  const path=entryId+'/'+Date.now()+'.jpg';
+  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:'image/jpeg',upsert:true});
+  if(error)throw error;
+  return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function render(){
+  if(loading){root.innerHTML='<div class="spinner"></div>';return}
+  // защита доступа
+  if(UI.view==='cabinet'&&AUTH.role==='guest')UI.view='login';
+  if((UI.view==='review'||UI.view==='admin')&&AUTH.role!=='admin')UI.view=(AUTH.role==='manager'?'cabinet':'login');
+  if(AUTH.role==='manager')UI.managerId=AUTH.manager_id;
+
+  let body;
+  if(UI.view==='login')body=viewLogin();
+  else if(UI.view==='board')body=viewBoard();
+  else if(UI.view==='cabinet')body=viewCabinet();
+  else if(UI.view==='review')body=viewReview();
+  else if(UI.view==='admin')body=viewAdmin();
+  root.innerHTML=header()+nav()+body+
+    '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
+  const shot=$('#shotInput'); if(shot)shot.addEventListener('change',onShotPick);
+  const lg=root.querySelector('.leaf img');
+  if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
+    lg.onerror=fb; if(lg.complete&&lg.naturalWidth===0)fb();}
+}
+
+function header(){
+  const info=contestInfo();
+  const dayLabel=info.phase==='before'?(workdays().length?'старт '+fmtLong(workdays()[0]):'нет дат'):
+    info.phase==='after'?'конкурс завершён':(info.idx>=0?('День '+(info.idx+1)+' из '+info.total):'сегодня выходной');
+  const pct=info.total?Math.round(info.elapsed/info.total*100):0;
+  const test=(S.settings&&S.settings.today_override)?'<span class="testchip">◐ тест-режим · сегодня = '+fmtLong(S.settings.today_override)+'</span>':'';
+  let auth;
+  if(AUTH.role==='manager')auth='<span class="authchip">👤 '+esc(AUTH.full_name||'Менеджер')+'</span><button class="btn sm ghost" data-action="logout">Выйти</button>';
+  else if(AUTH.role==='admin')auth='<span class="authchip">🛡️ Администратор</span><button class="btn sm ghost" data-action="logout">Выйти</button>';
+  else auth='<button class="btn sm primary" data-action="nav" data-view="login">Войти</button>';
+  return '<div class="top"><div class="brandmark"><div class="leaf"><img src="logo.png" alt="Контур.Банк"><span class="mono">К</span></div>'
+    +'<div class="tt"><h1>'+esc(S.settings.title)+'</h1><div class="sub">'+esc(S.settings.subtitle)+' · конкурс отдела продаж</div></div></div>'
+    +'<div class="authbox"><span class="daychip"><b>'+dayLabel+'</b></span>'+auth
+    +'<button class="theme-btn" data-action="theme" title="Тема">◑</button></div></div>'
+    +'<div class="ribbon"><span class="lab">Прогресс месяца</span><span class="bar"><i style="width:'+pct+'%"></i></span>'
+    +'<span class="lab"><b>'+info.elapsed+'</b> / '+info.total+' дней</span>'+test+'</div>';
+}
+function nav(){
+  const it=[['board','Рейтинг']];
+  if(AUTH.role==='manager')it.push(['cabinet','Мой кабинет']);
+  if(AUTH.role==='admin'){const pc=pendingCount();
+    it.push(['cabinet','Кабинеты']);
+    it.push(['review','Проверка'+(pc?'<span class="badge">'+pc+'</span>':'')]);
+    it.push(['admin','Настройки']);}
+  return '<div class="nav">'+it.map(([v,l])=>'<button data-action="nav" data-view="'+v+'" aria-current="'+(UI.view===v)+'">'+l+'</button>').join('')+'</div>';
+}
+
+/* ---- LOGIN ---- */
+function viewLogin(){
+  const tab=UI.loginTab||'manager';
+  const opts=S.managers.map(m=>'<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(m.team?' · '+esc(m.team):'')+'</option>').join('');
+  const mForm='<div class="field"><label>Фамилия и имя</label><select id="loginName"><option value="">— выбери себя —</option>'+opts+'</select></div>'
+    +'<div class="field"><label>PIN-код (4 цифры)</label><input id="loginPin" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"></div>'
+    +'<button class="btn primary" data-action="do-login-mgr" style="width:100%;justify-content:center">Войти</button>';
+  const aForm='<div class="field"><label>PIN администратора</label><input id="adminPin" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"></div>'
+    +'<button class="btn primary" data-action="do-login-admin" style="width:100%;justify-content:center">Войти как администратор</button>';
+  return '<div class="login-wrap"><div class="card login-card">'
+    +'<h2>Вход в адвент</h2><div class="note">Рейтинг открыт всем без входа. Вход нужен, чтобы открывать свои ячейки и сдавать отчёты.</div>'
+    +'<div class="seg" style="margin-bottom:16px"><button data-action="login-tab" data-tab="manager" aria-current="'+(tab==='manager')+'">Менеджер</button>'
+    +'<button data-action="login-tab" data-tab="admin" aria-current="'+(tab==='admin')+'">Администратор</button></div>'
+    +(tab==='manager'?mForm:aForm)
+    +'<div style="text-align:center;margin-top:16px"><button class="btn ghost sm" data-action="nav" data-view="board">← к рейтингу</button></div>'
+    +'</div></div>';
+}
+
+/* ---- BOARD ---- */
+function viewBoard(){
+  const info=contestInfo();
+  let out='<div class="section-h"><h2>Общий рейтинг</h2><div class="seg">'
+    +'<button data-action="lbtab" data-tab="people" aria-current="'+(UI.lbTab==='people')+'">Менеджеры</button>'
+    +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Команды</button></div></div>';
+  if(!S.managers.length){out+='<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';return out}
+  out+= UI.lbTab==='people'?lbPeople():lbTeam();
+  out+='<div class="section-h"><h2>Задачи на сегодня</h2><span class="hint">'+(info.phase==='live'&&info.idx>=0?fmtLong(effToday())+', '+fmtWD(effToday()):'—')+'</span></div>';
+  if(info.phase!=='live'||info.idx<0){
+    out+='<div class="card empty"><div class="big">Сегодня задач нет</div><div>'+(info.phase==='before'?'Конкурс ещё не стартовал.':info.phase==='after'?'Конкурс завершён.':'Сегодня выходной день.')+'</div></div>';
+  }else{out+='<div class="grid">'+S.managers.map(m=>todayCard(m,info.idx)).join('')+'</div>'}
+  return out;
+}
+function lbPeople(){
+  return '<div class="card lb">'+standings().map((r,i)=>{
+    const{col,ini}=avatar(r.m),medal=['🥇','🥈','🥉'][i];
+    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+      +'<div class="who"><div class="ava" style="background:'+col+'">'+ini+'</div><div style="min-width:0">'
+      +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
+      +'<div class="tm">'+esc(r.m.team||'')+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
+      +'<div class="gifts">'+(r.s.gifts?('🎁 '+r.s.gifts):'')+'</div>'
+      +'<div class="score"><div class="n">'+r.s.points+'</div><div class="u">баллов</div></div></div>';
+  }).join('')+'</div>';
+}
+function lbTeam(){
+  return '<div class="card lb">'+teamStandings().map((r,i)=>{
+    const medal=['🥇','🥈','🥉'][i];
+    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+      +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
+      +'<div><div class="nm">Команда «'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · сделано задач '+r.done+'</div></div></div>'
+      +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
+      +'<div class="score"><div class="n">'+r.points+'</div><div class="u">баллов</div></div></div>';
+  }).join('')+'</div>';
+}
+function statusPill(e){
+  if(!e||!e.opened_at)return '<span class="pill wait">Не открыл</span>';
+  if(e.review==='approved')return '<span class="pill done">✓ '+(e.kind==='special'?'Подарок 🎁':'Зачтено')+'</span>';
+  if(e.review==='pending')return '<span class="pill review">⏳ На проверке</span>';
+  if(e.review==='rejected')return '<span class="pill miss">Отклонён</span>';
+  return '<span class="pill reg">Открыл</span>';
+}
+function todayCard(m,idx){
+  const e=entryOf(m.id,idx),{col,ini}=avatar(m);
+  const spec=e&&e.kind==='special';
+  const opened=e&&e.opened_at;
+  const body=opened?'<div class="task">'+esc(e.task_text)+'</div>':'<div class="task locktask">🔒 Ячейка ещё не открыта</div>';
+  return '<div class="card tcard '+(spec?'spec':'')+'"><div class="hd"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+    +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc(m.team||'')+'</div></div></div>'
+    +body+'<div class="foot">'+statusPill(e)+(spec&&opened?'<span class="pill spec">🎁 Особая</span>':'')+'</div></div>';
+}
+
+/* ---- CABINET ---- */
+function viewCabinet(){
+  if(!S.managers.length)return '<div class="card empty"><div class="big">Нет участников</div></div>';
+  let picks='';
+  if(AUTH.role==='admin'){
+    if(!UI.managerId||!S.managers.find(m=>m.id===UI.managerId))UI.managerId=S.managers[0].id;
+    picks='<div class="pickwrap">'+S.managers.map(m=>{const{col,ini}=avatar(m);
+      return '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'"><span class="ava" style="background:'+col+'">'+ini+'</span>'+esc(m.full_name)+'</button>'}).join('')+'</div>';
+  }
+  const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
+  const isOwner=AUTH.role==='manager'&&AUTH.manager_id===m.id;
+  const s=statsOf(m),info=contestInfo();
+  const cells=workdays().map((iso,i)=>{
+    const e=entryOf(m.id,i),eff=effToday();
+    const rel=iso<eff?'past':(iso===eff?'today':'future');
+    const spec=e&&e.kind==='special';
+    let cls='cell '+rel+(spec?' spec':''),ic='';
+    if(rel==='future')ic='🔒';
+    else if(rel==='today'){
+      if(e&&e.review==='approved'){cls+=' done-today';ic='✓'}
+      else if(e&&e.review==='pending'){cls+=' review-today';ic='⏳'}
+      else if(e&&e.opened_at){ic=spec?'🎁':'•'}
+      else cls+=' pulse';
+    }else{ // past
+      if(e&&e.review==='approved'){cls+=' done';ic='✓'}
+      else if(e&&e.review==='pending'){cls+=' review';ic='⏳'}
+      else{cls+=' miss';ic='✕'}
+    }
+    const openLab=(rel==='today'&&isOwner&&!(e&&e.opened_at))?'<span class="open-lab">Открыть</span>':'';
+    const canClick=(rel==='today'&&isOwner);
+    const attrs=canClick?'data-action="open-cell" data-eid="'+(e?e.id:'')+'"':'disabled';
+    return '<button class="'+cls+'" style="grid-column-start:'+parseISO(iso).getDay()+'" '+attrs+' title="'+fmtLong(iso)+'"><div><div class="d">'+fmtD(iso)+'</div></div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-end">'+openLab+'<div class="ic">'+ic+'</div></div></button>';
+  }).join('');
+  const cal='<div class="card cal"><h3>Календарь · '+esc(m.full_name)+'</h3>'
+    +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — особая задача на подарок'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
+    +'<div class="cal-week"><span class="cal-wd">Пн</span><span class="cal-wd">Вт</span><span class="cal-wd">Ср</span><span class="cal-wd">Чт</span><span class="cal-wd">Пт</span></div>'
+    +'<div class="cells">'+cells+'</div></div>';
+  return picks+'<div class="cab">'+cal+todayPanel(m,s,info,isOwner)+'</div>';
+}
+function todayPanel(m,s,info,isOwner){
+  let card;
+  if(info.phase!=='live'||info.idx<0){
+    card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">'+(info.phase==='before'?'Конкурс скоро стартует':info.phase==='after'?'Конкурс завершён':'Сегодня выходной')+'</div></div>';
+  }else{
+    const e=entryOf(m.id,info.idx),spec=e&&e.kind==='special';
+    if(!e){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
+    else if(!e.opened_at){
+      card='<div class="reveal hidden"><div class="lockart">🎁</div><div class="big">Задача на сегодня скрыта</div>'
+        +(isOwner?'<div class="note">Открой ячейку '+fmtLong(e.edate)+', чтобы узнать задание дня.</div><button class="btn primary" data-action="open-cell" data-eid="'+e.id+'">Открыть ячейку дня</button>'
+                 :'<div class="note">Менеджер ещё не открыл ячейку.</div>')+'</div>';
+    }else{
+      const badge=spec?'<span class="pill spec">🎁 Особая задача — подарок</span>':'<span class="pill reg">Ежедневная задача — +1 балл</span>';
+      let block;
+      if(e.review==='approved')block='<span class="pill done">✓ '+(spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
+      else if(e.review==='pending')block='<span class="pill review">⏳ На проверке у руководителя</span>'+(isOwner?reportForm(e,'Изменить отчёт'):reportView(e));
+      else block=(isOwner?(e.review==='rejected'?'<span class="pill miss">Отклонено — отправь заново</span>':'')+reportForm(e,'Отправить на проверку'):reportView(e));
+      card='<div class="reveal pop '+(spec?'spec':'')+'">'+badge+'<div class="task">'+esc(e.task_text)+'</div>'+block+'</div>';
+    }
+  }
+  return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задача дня</div></div>'
+    +card+'<div class="mini"><div class="box"><div class="n">'+s.points+'</div><div class="l">баллов</div></div>'
+    +'<div class="box"><div class="n">🎁 '+s.gifts+'</div><div class="l">подарков</div></div>'
+    +'<div class="box"><div class="n">'+s.doneDays+'/'+s.elapsed+'</div><div class="l">выполнено</div></div></div></div>';
+}
+function reportForm(e,btnLabel){
+  return '<div class="field" style="margin:4px 0 0"><label>Отчёт о выполнении</label>'
+    +'<textarea id="repText" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
+    +'<div class="field" style="margin:0"><label>Ссылка на подтверждение (CRM, диск) — необязательно</label>'
+    +'<input id="repLink" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
+    +'<label class="filelabel">📎 Скриншот<input type="file" id="shotInput" accept="image/*"></label>'
+    +'<div id="shotPrev">'+(e.screenshot_url?'<img class="shot-prev" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
+    +'<button class="btn good" data-action="submit-report" data-eid="'+e.id+'" style="margin-top:4px">'+btnLabel+'</button>';
+}
+function reportView(e){
+  let h='';
+  if(e.report_text)h+='<div class="rt" style="white-space:pre-wrap;font-size:14px;margin-top:6px">'+esc(e.report_text)+'</div>';
+  if(e.report_link)h+='<div style="margin-top:6px">'+linkify(e.report_link)+'</div>';
+  if(e.screenshot_url)h+='<img class="shot-prev" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
+  return h;
+}
+
+/* ---- REVIEW (admin) ---- */
+function viewReview(){
+  const items=S.entries.filter(e=>e.review==='pending')
+    .map(e=>({e,m:S.managers.find(x=>x.id===e.manager_id)})).filter(x=>x.m)
+    .sort((a,b)=> (a.e.edate<b.e.edate?-1:1) || 0);
+  let out='<div class="section-h"><h2>Проверка отчётов</h2><span class="hint">'+items.length+' на проверке</span></div>';
+  if(!items.length){out+='<div class="card empty"><div class="big">Всё проверено 🎉</div><div>Новые отчёты появятся здесь, как только менеджеры их отправят.</div></div>';return out}
+  out+='<div class="card lb">'+items.map(({e,m})=>{
+    const{col,ini}=avatar(m),spec=e.kind==='special';
+    return '<div class="rev-item"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+      +'<div class="rev-body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(m.full_name)+'</b>'
+      +'<span class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая':'Ежедневная')+'</span>'
+      +'<span class="note">'+fmtLong(e.edate)+'</span></div>'
+      +'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
+      +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
+      +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
+      +(e.screenshot_url?'<img class="rev-thumb" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
+      +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
+      +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
+  }).join('')+'</div>';
+  return out;
+}
+
+/* ---- ADMIN ---- */
+function viewAdmin(){
+  const mlist=S.managers.map(m=>{const{col,ini}=avatar(m);
+    return '<div class="mrow"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+      +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:140px">'
+      +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="команда" style="flex:1;min-width:90px">'
+      +'<input value="" data-mid="'+m.id+'" data-f="pin" placeholder="PIN" maxlength="4" style="width:70px" inputmode="numeric">'
+      +'<button class="btn sm ghost" data-action="save-mgr" data-id="'+m.id+'">Сохранить</button>'
+      +'<button class="btn sm ghost" data-action="del-mgr" data-id="'+m.id+'" data-name="'+esc(m.full_name)+'">✕</button></div>'}).join('');
+  const dayOpts=workdays().map(iso=>'<option value="'+iso+'" '+((S.settings.today_override===iso)?'selected':'')+'>'+fmtLong(iso)+', '+fmtWD(iso)+'</option>').join('');
+  return '<div class="adm">'
+    +'<div class="card"><h3>Участники и PIN-коды</h3>'
+    +'<div class="note" style="margin-bottom:10px">PIN показывается один раз при добавлении. Здесь можно задать новый (впиши в поле PIN и «Сохранить»). Полный список для раздачи — кнопкой ниже.</div>'
+    +(mlist||'<div class="note">Пока никого нет.</div>')
+    +'<div class="row2" style="margin-top:14px"><div class="field" style="margin:0"><label>Имя</label><input id="newName" placeholder="Фамилия Имя"></div>'
+    +'<div class="field" style="margin:0"><label>Команда</label><input id="newTeam" placeholder="Альфа"></div>'
+    +'<button class="btn primary" data-action="add-mgr">+ Добавить</button></div>'
+    +'<div style="margin-top:12px"><button class="btn" data-action="list-pins">📋 Показать список PIN-кодов</button></div></div>'
+
+    +'<div class="card"><h3>Тест-режим (предпросмотр)</h3>'
+    +'<div class="field"><label>Считать «сегодня» датой</label><select data-action="set-today"><option value="">— выключить (реальная дата) —</option>'+dayOpts+'</select></div>'
+    +'<div class="note">Перематывает календарь на любой день октября для предпросмотра. Перед стартом конкурса выключи.</div></div>'
+
+    +'<div class="card"><h3>Ежедневные задачи (+1 балл)</h3>'
+    +'<div class="note" style="margin-bottom:8px">Одна задача на строку. У каждого менеджера — своя из списка.</div>'
+    +'<textarea id="poolReg" rows="10">'+esc(S.reg.map(x=>x.body).join('\n'))+'</textarea></div>'
+    +'<div class="card"><h3>Особые задачи (🎁 подарок)</h3>'
+    +'<div class="note" style="margin-bottom:8px">Каждому случайно выпадает 5 штук на месяц.</div>'
+    +'<textarea id="poolSpec" rows="7">'+esc(S.sp.map(x=>x.body).join('\n'))+'</textarea>'
+    +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи</button> '
+    +'<span class="note">Применится ко всем; уже начатые дни не перезапишутся.</span></div></div>'
+
+    +'<div class="card"><h3>Название и PIN администратора</h3>'
+    +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
+    +'<div class="field" style="margin:0"><label>Подзаголовок</label><input id="setSub" value="'+esc(S.settings.subtitle)+'"></div><span></span></div>'
+    +'<div class="row2"><div class="field" style="margin:0"><label>Новый PIN администратора (необязательно)</label><input id="setAdminPin" placeholder="оставь пустым — не менять" maxlength="8" inputmode="numeric"></div><span></span>'
+    +'<button class="btn primary" data-action="save-settings">Сохранить</button></div></div>'
+
+    +'<div class="card"><h3>Сброс</h3><div class="note" style="margin-bottom:12px">Очистить все отметки и отчёты у всех. Задачи и участники останутся. Сделай перед реальным стартом.</div>'
+    +'<button class="btn danger" data-action="reset-progress">Сбросить весь прогресс</button></div></div>';
+}
+
+/* =====================================================================
+   EVENTS
+   ===================================================================== */
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-action]'); if(!t)return;
+  const a=t.dataset.action;
+  if(a==='theme')return toggleTheme();
+  if(a==='zoom')return lightbox(t.getAttribute('src'));
+  if(a==='nav'){UI.view=t.dataset.view;persist();render();scrollTo(0,0);return}
+  if(a==='lbtab'){UI.lbTab=t.dataset.tab;persist();render();return}
+  if(a==='login-tab'){UI.loginTab=t.dataset.tab;render();return}
+  if(a==='logout'){AUTH={role:'guest'};UI.view='board';persist();render();return}
+  if(a==='open-cab'){ if(AUTH.role==='admin'){UI.view='cabinet';UI.managerId=t.dataset.id;persist();render();scrollTo(0,0);} return}
+  if(a==='pick'){UI.managerId=t.dataset.id;persist();render();return}
+
+  if(a==='do-login-mgr'){
+    const name=$('#loginName').value, pin=$('#loginPin').value.trim();
+    if(!name)return toast('Выбери себя из списка');
+    if(!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
+    const r=await rpc('login_manager',{p_name:name,p_pin:pin}).catch(()=>null);
+    if(r&&r.ok){AUTH={role:'manager',token:r.token,manager_id:r.manager_id,full_name:r.full_name};UI.view='cabinet';UI.managerId=r.manager_id;persist();render();toast('Привет, '+r.full_name.split(' ')[0]+'!')}
+    else toast('Неверная фамилия или PIN');
+    return;
+  }
+  if(a==='do-login-admin'){
+    const pin=$('#adminPin').value.trim();
+    const r=await rpc('login_admin',{p_pin:pin}).catch(()=>null);
+    if(r&&r.ok){AUTH={role:'admin',token:r.token};UI.view='review';persist();render();toast('Вход администратора')}
+    else toast('Неверный PIN администратора');
+    return;
+  }
+
+  if(a==='close-reveal')return;
+  if(a==='open-cell'){
+    const eid=t.dataset.eid;
+    const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
+    if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
+    if(r.ok===false){toast(errMsg(r.err));return}
+    await loadAll();render();
+    showRevealModal(S.entries.find(x=>x.id===eid));
+    return;
+  }
+
+  if(a==='submit-report'){
+    const eid=t.dataset.eid;
+    const text=($('#repText')&&$('#repText').value||'').trim();
+    const link=($('#repLink')&&$('#repLink').value||'').trim();
+    let shot=null;
+    if(pendingShot){t.disabled=true;t.textContent='Загружаю скриншот…';
+      try{shot=await uploadShot(eid,pendingShot)}catch(err){t.disabled=false;return toast('Не удалось загрузить скриншот')}}
+    else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
+    if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или скриншот')}
+    pendingShot=null;
+    return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
+  }
+
+  if(a==='review'){return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
+
+  if(a==='add-mgr'){
+    const name=$('#newName').value.trim(), team=$('#newTeam').value.trim();
+    if(!name)return toast('Введи имя');
+    const r=await act('admin_add_manager',{p_token:AUTH.token,p_name:name,p_team:team});
+    if(r&&r.ok)setTimeout(()=>alert('Добавлен: '+name+'\nPIN: '+r.pin+'\n\nЗапиши и передай менеджеру.'),50);
+    return;
+  }
+  if(a==='save-mgr'){
+    const id=t.dataset.id, get=f=>{const el=document.querySelector('[data-mid="'+id+'"][data-f="'+f+'"]');return el?el.value.trim():''};
+    const pin=get('pin');
+    if(pin&&!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
+    return act('admin_update_manager',{p_token:AUTH.token,p_id:id,p_name:get('name'),p_team:get('team'),p_pin:pin||null,p_active:true},'Сохранено');
+  }
+  if(a==='del-mgr'){if(confirm('Удалить '+t.dataset.name+'? Прогресс участника тоже удалится.'))return act('admin_delete_manager',{p_token:AUTH.token,p_id:t.dataset.id},'Удалён');return}
+  if(a==='save-pools'){
+    const reg=$('#poolReg').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const sp=$('#poolSpec').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    return act('admin_set_pools',{p_token:AUTH.token,p_regular:reg,p_special:sp},'Задачи сохранены');
+  }
+  if(a==='set-today'){return}
+  if(a==='save-settings'){
+    return act('admin_set_settings',{p_token:AUTH.token,p_title:$('#setTitle').value,p_subtitle:$('#setSub').value,
+      p_today_override:S.settings.today_override||'',p_admin_pin:$('#setAdminPin').value||null},'Сохранено');
+  }
+  if(a==='reset-progress'){if(confirm('Точно сбросить весь прогресс у всех?'))return act('admin_reset_progress',{p_token:AUTH.token},'Прогресс сброшен');return}
+  if(a==='list-pins'){
+    const r=await rpc('admin_list_pins',{p_token:AUTH.token}).catch(()=>null);
+    if(r&&r.ok){const txt=r.items.map(x=>x.full_name+(x.team?' ('+x.team+')':'')+' — PIN '+x.pin).join('\n');
+      alert('Список PIN-кодов для раздачи:\n\n'+txt)}
+    else toast('Не удалось получить список');
+    return;
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target.closest('[data-action="set-today"]'); if(!t)return;
+  act('admin_set_settings',{p_token:AUTH.token,p_title:'',p_subtitle:S.settings.subtitle,p_today_override:t.value||'',p_admin_pin:null});
+});
+function onShotPick(e){
+  const f=e.target.files&&e.target.files[0]; if(!f)return; pendingShot=f;
+  const url=URL.createObjectURL(f); const box=$('#shotPrev');
+  if(box)box.innerHTML='<img class="shot-prev" src="'+url+'">';
+}
+function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
+function showRevealModal(e){
+  if(!e)return;
+  const spec=e.kind==='special';
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const ov=document.createElement('div');ov.className='reveal-ov';
+  ov.innerHTML='<div class="reveal-modal">'
+    +'<div class="rv-orb '+(spec?'spec':'')+'">'+(spec?'🎁':fmtD(e.edate))+'</div>'
+    +'<div class="rv-content"><div class="rv-eyebrow">'+fmtLong(e.edate)+' · '+fmtWD(e.edate)+'</div>'
+    +'<div class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая задача — подарок':'Задача дня — +1 балл')+'</div>'
+    +'<div class="rv-task">'+esc(e.task_text)+'</div>'
+    +'<button class="btn primary" data-action="close-reveal" style="justify-content:center">Приступить →</button></div>'
+    +'<div class="rv-confetti"></div></div>';
+  document.body.appendChild(ov);
+  if(!reduce){const c=ov.querySelector('.rv-confetti');const cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8'];
+    for(let i=0;i<18;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=55+Math.random()*100;
+      s.style.setProperty('--x',Math.round(Math.cos(ang*Math.PI/180)*dist)+'px');
+      s.style.setProperty('--y',Math.round(Math.sin(ang*Math.PI/180)*dist)+'px');
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.18).toFixed(2)+'s';c.appendChild(s);}}
+  const close=()=>ov.remove();
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
+  document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
+}
+function toggleTheme(){const el=document.documentElement,cur=el.getAttribute('data-theme'),
+  sysDark=matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches;
+  let n; if(!cur)n=sysDark?'light':'dark'; else if(cur==='dark')n='light'; else n='dark';
+  el.setAttribute('data-theme',n);try{localStorage.setItem('advTheme',n)}catch(e){}}
+try{const s=localStorage.getItem('advTheme');if(s)document.documentElement.setAttribute('data-theme',s)}catch(e){}
+
+/* ---------- boot (после загрузки библиотеки Supabase) ---------- */
+function start(){
+  if(sb)return;
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  loadAll().then(()=>{render();subscribeRealtime()}).catch(err=>{
+    console.error(err);
+    if(loading){
+      root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Не удалось подключиться к базе</h2>'
+        +'<div class="note">Проверь, что в CONFIG правильно указаны Project URL и anon key, и что SQL-скрипт выполнен в Supabase. Техническая деталь: '+esc(err.message||err)+'</div></div></div>';
+    }else{ toast('Нет связи с базой — показаны сохранённые данные'); }
+  });
+}
+if(cacheLoad()) render();          // мгновенный показ последних данных из кэша
+window.__advStart = start;
+if(window.supabase) start();
+})();
+</script>
+<script>
+/* Загрузка библиотеки Supabase: сначала локальный файл supabase.js (быстро, без внешних доменов),
+   если его нет — резервно с CDN. Положи supabase.js рядом с index.html, чтобы убрать внешний CDN. */
+(function(){
+  function run(){ if(window.__advStart) window.__advStart(); }
+  function fail(){ var r=document.getElementById('root');
+    if(r) r.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Не удалось загрузить библиотеку</h2>'
+      +'<div class="note">Проверьте интернет-соединение, либо положите файл <b>supabase.js</b> рядом с index.html и обновите страницу.</div></div></div>'; }
+  var local=document.createElement('script'); local.src='./supabase.js'; local.onload=run;
+  local.onerror=function(){
+    var cdn=document.createElement('script');
+    cdn.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+    cdn.onload=run; cdn.onerror=fail; document.head.appendChild(cdn);
+  };
+  document.head.appendChild(local);
+})();
+</script>
+</body>
+</html>
