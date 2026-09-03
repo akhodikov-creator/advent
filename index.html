@@ -54,8 +54,9 @@ button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;backgrou
 h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600;text-wrap:balance;letter-spacing:-.01em}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .brandmark{display:flex;align-items:center;gap:12px}
-.leaf{width:48px;height:48px;border-radius:12px;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--sh);overflow:hidden}
-.leaf img{width:100%;height:100%;object-fit:contain;padding:5px;display:block}
+.leaf{width:48px;height:48px;border-radius:12px;background:var(--raise);display:grid;place-items:center;box-shadow:var(--sh);overflow:hidden}
+.leaf img{width:100%;height:100%;object-fit:cover;display:block}
+.ava img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 .leaf .mono{display:none;width:100%;height:100%;place-items:center;font-family:var(--serif);font-weight:700;font-size:24px;background:linear-gradient(135deg,var(--brand),var(--plum));-webkit-background-clip:text;background-clip:text;color:transparent}
 .tt h1{font-size:clamp(22px,3.4vw,30px);line-height:1.02}
 .tt .sub{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:700;margin-top:4px}
@@ -225,6 +226,16 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .dchip{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:12.5px;color:var(--muted);box-shadow:var(--sh)}
 .dchip[aria-current="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-2)}
 .mrow select{width:auto;padding:8px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13.5px}
+.avaup{cursor:pointer;position:relative;flex:none}
+.avaup input{display:none}
+.avaup::after{content:"✎";position:absolute;right:-3px;bottom:-3px;background:var(--brand);color:#fff;width:15px;height:15px;border-radius:50%;font-size:9px;display:grid;place-items:center;box-shadow:var(--sh)}
+.pill.cat{background:var(--plum-soft);color:var(--plum)}
+.cell.catday::before{content:"";position:absolute;top:0;right:0;border-width:0 22px 22px 0;border-style:solid;border-color:transparent #7C4DBF transparent transparent}
+:root[data-theme="dark"] .cell.catday::before,:root:not([data-theme="light"]) .cell.catday::before{border-color:transparent #A986E0 transparent transparent}
+.taskblock.cat{border-color:#8B5CC7;background:var(--plum-soft)}
+.reassign-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin-top:10px}
+.reassign-list button{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-weight:600;font-size:13.5px;text-align:left}
+.reassign-list button:hover{border-color:var(--brand);background:var(--brand-soft)}
 .taskstack{display:flex;flex-direction:column;gap:12px}
 .taskblock{border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;background:var(--surface-2);display:flex;flex-direction:column;gap:9px}
 .taskblock.spec{border-color:var(--gift);background:var(--gift-soft)}
@@ -285,7 +296,7 @@ if(!UI.dirFilter)UI.dirFilter='all';
 if(!UI.poolDir)UI.poolDir='СРБ';
 
 /* ---------- данные с сервера ---------- */
-let S = {settings:null, managers:[], entries:[], reg:[], sp:[]};
+let S = {settings:null, managers:[], entries:[], reg:[], sp:[], cat:[]};
 let byMgr = {};   // managerId -> {dayIndex -> entry}
 let loading=true, pendingShots={};
 
@@ -300,7 +311,8 @@ function fmtLong(iso){const dt=parseISO(iso);return dt.getDate()+' '+MON[dt.getM
 function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function workdays(){return (S.settings&&S.settings.workdays)||[]}
 function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
-function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini}}
+function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini,url:m.avatar_url||''}}
+function avaTag(m,cls){const{col,ini,url}=avatar(m);return '<div class="ava'+(cls?' '+cls:'')+'" style="background:'+col+'">'+(url?'<img src="'+esc(url)+'" alt="">':esc(ini))+'</div>'}
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
 
 let entByMgr={};
@@ -312,7 +324,7 @@ function rebuildIndex(){
     (entByMgr[e.manager_id]=entByMgr[e.manager_id]||[]).push(e);
   });
 }
-function dayEntries(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];if(!d)return [];const a=[];if(d.regular)a.push(d.regular);if(d.special)a.push(d.special);return a}
+function dayEntries(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];if(!d)return [];const a=[];if(d.regular)a.push(d.regular);if(d.special)a.push(d.special);if(d.cat)a.push(d.cat);return a}
 function entryOf(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];return d?(d.regular||d.special||null):null}
 function pastDeadline(){
   if(S.settings&&S.settings.today_override)return false;   // тест-режим — без дедлайна
@@ -324,9 +336,14 @@ function statsOf(m){
   let points=0,gifts=0,missed=0,pending=0,tasksDone=0,tasksElapsed=0;
   const eff=effToday(), arr=entByMgr[m.id]||[];
   arr.forEach(e=>{ if(e.edate>eff)return; tasksElapsed++;
-    if(e.review==='approved'){tasksDone++; if(e.kind==='special')gifts++; else points++;}
-    else if(e.review==='pending')pending++;
-    if(e.edate<eff && e.review!=='approved')missed++;
+    const done=e.review==='approved', pend=e.review==='pending', past=e.edate<eff;
+    if(e.kind==='cat'){
+      if(done){points+=2;tasksDone++;} else if(pend){pending++;} else if(past){points-=2;missed++;}
+    }else if(e.kind==='special'){
+      if(done){gifts++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
+    }else{
+      if(done){points++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
+    }
   });
   return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
 }
@@ -354,23 +371,24 @@ async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error)thr
 async function loadAll(){
   try{
     const data=await rpc('bootstrap');           // один запрос вместо шести
-    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.entries=data.entries||[];
+    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.entries=data.entries||[];
   }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
-    const [st,mg,rg,sp,en]=await Promise.all([
+    const [st,mg,rg,sp,ct,en]=await Promise.all([
       sb.from('app_settings').select('*').eq('id',1).single(),
-      sb.from('managers').select('id,full_name,team,seat,active,direction').eq('active',true).order('seat'),
+      sb.from('managers').select('id,full_name,team,seat,active,direction,avatar_url').eq('active',true).order('seat'),
       sb.from('pool_regular').select('*').order('ord'),
       sb.from('pool_special').select('*').order('ord'),
+      sb.from('pool_cat').select('*').order('ord'),
       sb.from('entries').select('*')
     ]);
     if(st.error)throw st.error;
-    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.entries=en.data||[];
+    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.entries=en.data||[];
   }
   rebuildIndex(); loading=false; cacheSave();
 }
-function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,entries:S.entries}))}catch(e){}}
+function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,entries:S.entries}))}catch(e){}}
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
-  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
+  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
 let reloadT;
 function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(render).catch(()=>{}),400)}
 function subscribeRealtime(){
@@ -394,7 +412,10 @@ async function act(fn,args,okMsg){
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
   empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно',
-  deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя'})[code]||'Не получилось'}
+  deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя',
+  no_reassign:'Переназначить кота можно только один раз',
+  bad_target:'Этому участнику нельзя передать — у него уже есть бонус или кот в этот день',
+  self:'Нельзя передать самому себе'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -434,6 +455,7 @@ function render(){
   root.innerHTML=header()+nav()+body+
     '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
   root.querySelectorAll('.shotinput').forEach(inp=>inp.addEventListener('change',onShotPick));
+  root.querySelectorAll('.avainput').forEach(inp=>inp.addEventListener('change',onAvatarPick));
   const lg=root.querySelector('.leaf img');
   if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
     lg.onerror=fb; if(lg.complete&&lg.naturalWidth===0)fb();}
@@ -515,9 +537,9 @@ function viewBoard(){
 }
 function lbPeople(){
   return '<div class="card lb">'+standings().map((r,i)=>{
-    const{col,ini}=avatar(r.m),medal=['🥇','🥈','🥉'][i];
+    const medal=['🥇','🥈','🥉'][i];
     return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
-      +'<div class="who"><div class="ava" style="background:'+col+'">'+ini+'</div><div style="min-width:0">'
+      +'<div class="who">'+avaTag(r.m)+'<div style="min-width:0">'
       +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
       +'<div class="tm">'+esc([r.m.direction,r.m.team].filter(Boolean).join(' · '))+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
       +'<div class="gifts">'+(r.s.gifts?('🎁 '+r.s.gifts):'')+'</div>'
@@ -542,12 +564,12 @@ function statusPill(e){
   return '<span class="pill reg">Открыл</span>';
 }
 function todayCard(m,idx){
-  const ents=dayEntries(m.id,idx),{col,ini}=avatar(m);
+  const ents=dayEntries(m.id,idx);
   const e=ents.find(x=>x.kind==='regular')||ents[0];
   const hasBonus=ents.some(x=>x.kind==='special');
   const opened=e&&e.opened_at;
   const body=opened?'<div class="task">'+esc(e.task_text)+'</div>':'<div class="task locktask">🔒 Ячейка ещё не открыта</div>';
-  return '<div class="card tcard"><div class="hd"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+  return '<div class="card tcard"><div class="hd">'+avaTag(m)
     +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</div></div></div>'
     +body+'<div class="foot">'+statusPill(e)+(hasBonus?'<span class="pill spec">🎁 +бонус</span>':'')+'</div></div>';
 }
@@ -558,8 +580,8 @@ function viewCabinet(){
   let picks='';
   if(AUTH.role==='admin'){
     if(!UI.managerId||!S.managers.find(m=>m.id===UI.managerId))UI.managerId=S.managers[0].id;
-    picks='<div class="pickwrap">'+S.managers.map(m=>{const{col,ini}=avatar(m);
-      return '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'"><span class="ava" style="background:'+col+'">'+ini+'</span>'+esc(m.full_name)+'</button>'}).join('')+'</div>';
+    picks='<div class="pickwrap">'+S.managers.map(m=>
+      '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'">'+avaTag(m)+esc(m.full_name)+'</button>').join('')+'</div>';
   }
   const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
   const isOwner=AUTH.role==='manager'&&AUTH.manager_id===m.id;
@@ -571,8 +593,10 @@ function cabinetInner(m,isOwner){
     const ents=dayEntries(m.id,i),eff=effToday();
     const rel=iso<eff?'past':(iso===eff?'today':'future');
     const hasSpec=ents.some(e=>e.kind==='special');
+    const hasCat=ents.some(e=>e.kind==='cat');
     const showSpec=hasSpec&&rel!=='future';           // #4: бонус скрыт на будущих днях
-    let cls='cell '+rel+(showSpec?' spec':''),ic='';
+    const showCat=hasCat&&rel!=='future';
+    let cls='cell '+rel+(showSpec?' spec':'')+(showCat?' catday':''),ic='';
     const opened=ents.some(e=>e.opened_at);
     const allAppr=ents.length>0&&ents.every(e=>e.review==='approved');
     const anyPend=ents.some(e=>e.review==='pending');
@@ -580,7 +604,7 @@ function cabinetInner(m,isOwner){
     else if(rel==='today'){
       if(allAppr){cls+=' done-today';ic='✓'}
       else if(anyPend){cls+=' review-today';ic='⏳'}
-      else if(opened){ic=showSpec?'🎁':'•'}
+      else if(opened){ic=showCat?'🐱':showSpec?'🎁':'•'}
       else cls+=' pulse';
     }else{ // past
       if(allAppr){cls+=' done';ic='✓'}
@@ -612,38 +636,47 @@ function todayPanel(m,s,info,isOwner){
     +'<div class="box"><div class="n">'+s.doneDays+'/'+s.elapsed+'</div><div class="l">выполнено</div></div></div></div>';
 }
 function taskBlock(e,interactive){
-  const spec=e.kind==='special', eff=effToday();
+  const eff=effToday();
   const rel=e.edate<eff?'past':(e.edate===eff?'today':'future');
-  const badge=spec?'<span class="pill spec">🎁 Бонус — подарок</span>':'<span class="pill reg">Ежедневная — +1 балл</span>';
+  const cat=e.kind==='cat', spec=e.kind==='special';
+  const badge=cat?'<span class="pill cat">🐱 Кот в мешке · +2 / −2</span>'
+    :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
+    :'<span class="pill reg">Ежедневная — +1 балл</span>';
+  const blockcls=cat?'cat':(spec?'spec':'');
   let inner='';
   const locked=!e.opened_at && rel!=='past';        // прошлые дни раскрываем всегда
   if(locked){
     inner=interactive
-      ?'<div class="note">Нажми, чтобы открыть задание дня.</div><button class="btn primary sm" data-action="open-cell" data-eid="'+e.id+'">Открыть '+(spec?'бонус 🎁':'задачу')+'</button>'
+      ?'<div class="note">Нажми, чтобы открыть задание дня.</div><button class="btn primary sm" data-action="open-cell" data-eid="'+e.id+'">Открыть '+(cat?'кота 🐱':spec?'бонус 🎁':'задачу')+'</button>'
       :'<div class="locktask">🔒 Ещё не открыта</div>';
   }else{
     inner='<div class="task">'+esc(e.task_text)+'</div>';
     if(e.review==='approved'){
-      inner+='<span class="pill done">✓ '+(spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
+      inner+='<span class="pill done">✓ '+(cat?'Зачтено +2 балла':spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
       if(e.review_comment)inner+=commentBox(e.review_comment);
     }else if(e.review==='pending'){
       inner+='<span class="pill review">⏳ На проверке у руководителя</span>';
       inner+= (interactive&&rel==='today')?deadlineOrForm(e,'Обновить отчёт'):reportView(e);
     }else if(rel==='past'){
-      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено</span>';if(e.review_comment)inner+=commentBox(e.review_comment);inner+=reportView(e);}
-      else inner+='<span class="pill miss">✕ Не зачтено</span>';
+      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено'+(cat?' −2 балла':'')+'</span>';if(e.review_comment)inner+=commentBox(e.review_comment);inner+=reportView(e);}
+      else inner+='<span class="pill miss">✕ Не зачтено'+(cat?' −2 балла':'')+'</span>';
     }else{ // today, none/rejected
       if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено — переделай</span>';if(e.review_comment)inner+=commentBox(e.review_comment);}
       inner+= interactive?deadlineOrForm(e,'Отправить на проверку'):reportView(e);
     }
+    if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
+      inner+= (e.reassigns_left||0)>0
+        ?'<button class="btn ghost sm" data-action="reassign-cat" data-eid="'+e.id+'" style="border-color:#8B5CC7;color:var(--plum)">🐱 Отдать другому (1 раз)</button>'
+        :'<div class="note">Переназначение уже использовано.</div>';
+    }
   }
-  return '<div class="taskblock '+(spec?'spec':'')+'">'+badge+inner+'</div>';
+  return '<div class="taskblock '+blockcls+'">'+badge+inner+'</div>';
 }
 function deadlineOrForm(e,label){
   if(pastDeadline())return '<div class="deadline">⏰ Приём отчётов закрыт: после 20:00 по Екатеринбургу сдать нельзя.</div>'+reportView(e);
   return reportForm(e,label);
 }
-function commentBox(txt){return '<div class="commentbox">💬 <b>Руководитель:</b> '+esc(txt)+'</div>';}
+function commentBox(txt){return '<div class="commentbox">💬 <b>Администратор:</b> '+esc(txt)+'</div>';}
 function reportForm(e,btnLabel){
   const id=e.id;
   return '<div class="field" style="margin:4px 0 0"><label>Отчёт о выполнении</label>'
@@ -684,8 +717,8 @@ function viewReview(){
   let out='<div class="section-h"><h2>Проверка отчётов</h2><span class="hint">'+items.length+' на проверке</span></div>';
   if(!items.length){out+='<div class="card empty"><div class="big">Всё проверено 🎉</div><div>Новые отчёты появятся здесь, как только менеджеры их отправят.</div></div>';return out}
   out+='<div class="card lb">'+items.map(({e,m})=>{
-    const{col,ini}=avatar(m),spec=e.kind==='special';
-    return '<div class="rev-item"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+    const spec=e.kind==='special';
+    return '<div class="rev-item">'+avaTag(m)
       +'<div class="rev-body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(m.full_name)+'</b>'
       +'<span class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая':'Ежедневная')+'</span>'
       +'<span class="note">'+fmtLong(e.edate)+'</span></div>'
@@ -703,8 +736,8 @@ function viewReview(){
 /* ---- ADMIN ---- */
 function viewAdmin(){
   const dirSel=(id,cur)=>'<select data-mid="'+id+'" data-f="direction">'+DIRS.map(d=>'<option '+((cur||'ЦК')===d?'selected':'')+'>'+d+'</option>').join('')+'</select>';
-  const mlist=S.managers.map(m=>{const{col,ini}=avatar(m);
-    return '<div class="mrow"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+  const mlist=S.managers.map(m=>{
+    return '<div class="mrow"><label class="avaup" title="Загрузить аватар">'+avaTag(m)+'<input type="file" class="avainput" data-mid="'+m.id+'" accept="image/*"></label>'
       +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:130px">'
       +dirSel(m.id,m.direction)
       +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="отдел" style="flex:1;min-width:80px">'
@@ -729,6 +762,10 @@ function viewAdmin(){
 
     +poolsCard()
 
+    +'<div class="card"><h3>🐱 Кот в мешке</h3>'
+    +'<div class="note" style="margin-bottom:12px">Каждый день «кот» случайно достаётся 2 участникам (сверх обычных задач, но не в день бонуса). Кнопка раздаёт котов заново на все дни — жми после того, как добавил всех участников и задачи «кота» по направлениям.</div>'
+    +'<button class="btn" data-action="assign-cats">🐱 Раздать «Котов в мешке»</button></div>'
+
     +'<div class="card"><h3>Название и PIN администратора</h3>'
     +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
     +'<div class="field" style="margin:0"><label>Подзаголовок</label><input id="setSub" value="'+esc(S.settings.subtitle)+'"></div><span></span></div>'
@@ -742,12 +779,15 @@ function poolsCard(){
   const dir=UI.poolDir;
   const reg=S.reg.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.body).join('\n');
   const sp =S.sp.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.body).join('\n');
+  const catv=(S.cat||[]).filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.body).join('\n');
   return '<div class="card"><h3>Задачи по направлениям</h3>'
     +'<div class="seg" style="margin-bottom:12px">'+DIRS.map(d=>'<button data-action="pooldir" data-dir="'+d+'" aria-current="'+(dir===d)+'">'+d+'</button>').join('')+'</div>'
     +'<div class="note" style="margin-bottom:6px">Направление <b>'+esc(dir)+'</b> · ежедневные задачи (одна на строку, +1 балл):</div>'
-    +'<textarea id="poolReg" rows="9">'+esc(reg)+'</textarea>'
-    +'<div class="note" style="margin:12px 0 6px">Особые задачи (🎁 подарок), одна на строку:</div>'
-    +'<textarea id="poolSpec" rows="6">'+esc(sp)+'</textarea>'
+    +'<textarea id="poolReg" rows="8">'+esc(reg)+'</textarea>'
+    +'<div class="note" style="margin:12px 0 6px">🎁 Особые задачи (бонус — подарок), одна на строку:</div>'
+    +'<textarea id="poolSpec" rows="5">'+esc(sp)+'</textarea>'
+    +'<div class="note" style="margin:12px 0 6px">🐱 Кот в мешке (супер-сложные, +2 за выполнение / −2 за провал), одна на строку:</div>'
+    +'<textarea id="poolCat" rows="5">'+esc(catv)+'</textarea>'
     +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи «'+esc(dir)+'»</button> '
     +'<span class="note">Применится к менеджерам этого направления; начатые дни не перезапишутся.</span></div></div>';
 }
@@ -770,6 +810,12 @@ document.addEventListener('click',async e=>{
   if(a==='pick'){UI.managerId=t.dataset.id;persist();render();return}
   if(a==='view-day'){showDayModal(t.dataset.mid,+t.dataset.day);return}
   if(a==='close-day')return;
+  if(a==='reassign-cat'){showReassignModal(t.dataset.eid);return}
+  if(a==='do-reassign'){
+    const eid=t.dataset.eid,target=t.dataset.target;
+    if(reassignOv){reassignOv.remove();reassignOv=null}
+    return act('reassign_cat',{p_token:AUTH.token,p_entry:eid,p_target:target},'Кот в мешке переназначен 🐱');
+  }
 
   if(a==='do-login-mgr'){
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
@@ -833,8 +879,10 @@ document.addEventListener('click',async e=>{
   if(a==='save-pools'){
     const reg=$('#poolReg').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const sp=$('#poolSpec').value.split('\n').map(s=>s.trim()).filter(Boolean);
-    return act('admin_set_pools',{p_token:AUTH.token,p_direction:UI.poolDir,p_regular:reg,p_special:sp},'Задачи «'+UI.poolDir+'» сохранены');
+    const ct=$('#poolCat').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    return act('admin_set_pools',{p_token:AUTH.token,p_direction:UI.poolDir,p_regular:reg,p_special:sp,p_cat:ct},'Задачи «'+UI.poolDir+'» сохранены');
   }
+  if(a==='assign-cats'){if(confirm('Раздать «Котов в мешке» заново? Это перемешает их случайно по 2 участника в день (текущий прогресс по котам сбросится).'))return act('admin_assign_cats',{p_token:AUTH.token},'Коты в мешке розданы 🐱');return}
   if(a==='set-today'){return}
   if(a==='save-settings'){
     return act('admin_set_settings',{p_token:AUTH.token,p_title:$('#setTitle').value,p_subtitle:$('#setSub').value,
@@ -859,6 +907,42 @@ function onShotPick(e){
   const url=URL.createObjectURL(f), box=$('#sp_'+eid);
   if(box)box.innerHTML='<img class="shot-prev" src="'+url+'">';
 }
+function compressSquare(file,size){
+  return new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{const s=Math.min(img.width,img.height);const c=document.createElement('canvas');c.width=size;c.height=size;
+      c.getContext('2d').drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.85)};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
+}
+async function onAvatarPick(e){
+  const inp=e.target, id=inp.dataset.mid, f=inp.files&&inp.files[0]; if(!f||!id)return;
+  toast('Загружаю аватар…');
+  try{
+    const blob=await compressSquare(f,256);
+    const path='avatars/'+id+'/'+Date.now()+'.jpg';
+    const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:'image/jpeg',upsert:true});
+    if(error)throw error;
+    const url=sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
+    await act('admin_set_avatar',{p_token:AUTH.token,p_id:id,p_url:url},'Аватар обновлён');
+  }catch(err){console.error(err);toast('Не удалось загрузить аватар')}
+}
+function catEligible(e){return S.managers.filter(m=>m.id!==e.manager_id&&dayEntries(m.id,e.day_index).every(x=>x.kind!=='special'&&x.kind!=='cat'))}
+function showReassignModal(eid){
+  const e=S.entries.find(x=>x.id===eid); if(!e)return;
+  const list=catEligible(e);
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="font-size:18px">🐱 Отдать «Кота в мешке»</h3>'
+    +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>'
+    +'<div class="note">Переназначить можно только один раз. Выбранный участник получит это задание и будет отдуваться за него.</div>';
+  h+= list.length?'<div class="reassign-list">'+list.map(m=>'<button data-action="do-reassign" data-eid="'+eid+'" data-target="'+m.id+'">'+avaTag(m)+esc(m.full_name)+' · '+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</button>').join('')+'</div>'
+    :'<div class="note" style="margin-top:10px">Нет подходящих участников (у остальных уже есть бонус или кот в этот день).</div>';
+  const ov=document.createElement('div');ov.className='reveal-ov';
+  ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
+  document.body.appendChild(ov);
+  reassignOv=ov;
+  const close=()=>{ov.remove();reassignOv=null};
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-day"]'))close()});
+}
+let reassignOv=null;
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
 function showRevealModal(e){
   if(!e)return;
