@@ -218,6 +218,13 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .rv-confetti{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
 .rv-confetti i{position:absolute;left:50%;top:34%;width:9px;height:9px;border-radius:2px;opacity:0;animation:conf .95s ease-out forwards}
 @keyframes conf{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(240deg) scale(1)}}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.cab-stack{display:flex;flex-direction:column;gap:16px}
+.dirfilter{display:flex;gap:6px;flex-wrap:wrap;margin:0 2px 14px}
+.dchip{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:12.5px;color:var(--muted);box-shadow:var(--sh)}
+.dchip[aria-current="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-2)}
+.mrow select{width:auto;padding:8px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13.5px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -253,6 +260,9 @@ const UI = load('advUI', {view:'board', lbTab:'people', managerId:null});
 let AUTH = load('advAuth', {role:'guest'});
 function load(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}}
 function persist(){try{localStorage.setItem('advUI',JSON.stringify(UI));localStorage.setItem('advAuth',JSON.stringify(AUTH))}catch(e){}}
+const DIRS=['СРБ','ПМ','ЦК'];
+if(!UI.dirFilter)UI.dirFilter='all';
+if(!UI.poolDir)UI.poolDir='СРБ';
 
 /* ---------- данные с сервера ---------- */
 let S = {settings:null, managers:[], entries:[], reg:[], sp:[]};
@@ -290,14 +300,16 @@ function statsOf(m){
   });
   return{points,gifts,missed,doneDays,elapsed,pending};
 }
+function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
 function standings(){
-  return S.managers.map(m=>({m,s:statsOf(m)}))
+  return filteredManagers().map(m=>({m,s:statsOf(m)}))
     .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
 }
 function teamStandings(){
   const map={};
-  S.managers.forEach(m=>{const t=m.team||'—';(map[t]=map[t]||{team:t,points:0,gifts:0,n:0,done:0});
-    const s=statsOf(m);map[t].points+=s.points;map[t].gifts+=s.gifts;map[t].n++;map[t].done+=s.doneDays;});
+  filteredManagers().forEach(m=>{const team=m.team||'Без отдела', dir=m.direction||'—', key=dir+'||'+team;
+    if(!map[key])map[key]={team,dir,points:0,gifts:0,n:0,done:0};
+    const s=statsOf(m);map[key].points+=s.points;map[key].gifts+=s.gifts;map[key].n++;map[key].done+=s.doneDays;});
   return Object.values(map).sort((a,b)=>b.points-a.points||b.gifts-a.gifts);
 }
 function contestInfo(){
@@ -316,7 +328,7 @@ async function loadAll(){
   }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
     const [st,mg,rg,sp,en]=await Promise.all([
       sb.from('app_settings').select('*').eq('id',1).single(),
-      sb.from('managers').select('id,full_name,team,seat,active').eq('active',true).order('seat'),
+      sb.from('managers').select('id,full_name,team,seat,active,direction').eq('active',true).order('seat'),
       sb.from('pool_regular').select('*').order('ord'),
       sb.from('pool_special').select('*').order('ord'),
       sb.from('entries').select('*')
@@ -426,7 +438,7 @@ function nav(){
 /* ---- LOGIN ---- */
 function viewLogin(){
   const tab=UI.loginTab||'manager';
-  const opts=S.managers.map(m=>'<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(m.team?' · '+esc(m.team):'')+'</option>').join('');
+  const opts=S.managers.map(m=>{const meta=[m.direction,m.team].filter(Boolean).join(' · ');return '<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(meta?' · '+esc(meta):'')+'</option>'}).join('');
   const mForm='<div class="field"><label>Фамилия и имя</label><select id="loginName"><option value="">— выбери себя —</option>'+opts+'</select></div>'
     +'<div class="field"><label>PIN-код (4 цифры)</label><input id="loginPin" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"></div>'
     +'<button class="btn primary" data-action="do-login-mgr" style="width:100%;justify-content:center">Войти</button>';
@@ -442,17 +454,32 @@ function viewLogin(){
 }
 
 /* ---- BOARD ---- */
-function viewBoard(){
-  const info=contestInfo();
-  let out='<div class="section-h"><h2>Общий рейтинг</h2><div class="seg">'
+function dirChips(){
+  const chip=(v,l)=>'<button class="dchip" data-action="dir" data-dir="'+v+'" aria-current="'+(UI.dirFilter===v)+'">'+l+'</button>';
+  return '<div class="dirfilter">'+chip('all','Все')+DIRS.map(d=>chip(d,d)).join('')+'</div>';
+}
+function leaderboardBlock(){
+  if(!S.managers.length)return '<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';
+  return '<div class="section-h"><h2>Рейтинг</h2><div class="seg">'
     +'<button data-action="lbtab" data-tab="people" aria-current="'+(UI.lbTab==='people')+'">Менеджеры</button>'
-    +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Команды</button></div></div>';
-  if(!S.managers.length){out+='<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';return out}
-  out+= UI.lbTab==='people'?lbPeople():lbTeam();
-  out+='<div class="section-h"><h2>Задачи на сегодня</h2><span class="hint">'+(info.phase==='live'&&info.idx>=0?fmtLong(effToday())+', '+fmtWD(effToday()):'—')+'</span></div>';
+    +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Отделы</button></div></div>'
+    +dirChips()
+    +(UI.lbTab==='people'?lbPeople():lbTeam());
+}
+function viewBoard(){
+  const me=(AUTH.role==='manager')?S.managers.find(x=>x.id===AUTH.manager_id):null;
+  const lb=leaderboardBlock();
+  if(me){  // вошёл менеджер — слева рейтинг, справа свой календарь
+    return '<div class="split"><div class="split-l">'+lb+'</div>'
+      +'<div class="split-r"><div class="cab-stack">'+cabinetInner(me,true)+'</div></div></div>';
+  }
+  // гость / админ — рейтинг во всю ширину + задачи на сегодня
+  if(!S.managers.length)return lb;
+  const info=contestInfo();
+  let out=lb+'<div class="section-h"><h2>Задачи на сегодня</h2><span class="hint">'+(info.phase==='live'&&info.idx>=0?fmtLong(effToday())+', '+fmtWD(effToday()):'—')+'</span></div>';
   if(info.phase!=='live'||info.idx<0){
     out+='<div class="card empty"><div class="big">Сегодня задач нет</div><div>'+(info.phase==='before'?'Конкурс ещё не стартовал.':info.phase==='after'?'Конкурс завершён.':'Сегодня выходной день.')+'</div></div>';
-  }else{out+='<div class="grid">'+S.managers.map(m=>todayCard(m,info.idx)).join('')+'</div>'}
+  }else{out+='<div class="grid">'+filteredManagers().map(m=>todayCard(m,info.idx)).join('')+'</div>'}
   return out;
 }
 function lbPeople(){
@@ -461,7 +488,7 @@ function lbPeople(){
     return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
       +'<div class="who"><div class="ava" style="background:'+col+'">'+ini+'</div><div style="min-width:0">'
       +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
-      +'<div class="tm">'+esc(r.m.team||'')+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
+      +'<div class="tm">'+esc([r.m.direction,r.m.team].filter(Boolean).join(' · '))+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
       +'<div class="gifts">'+(r.s.gifts?('🎁 '+r.s.gifts):'')+'</div>'
       +'<div class="score"><div class="n">'+r.s.points+'</div><div class="u">баллов</div></div></div>';
   }).join('')+'</div>';
@@ -471,7 +498,7 @@ function lbTeam(){
     const medal=['🥇','🥈','🥉'][i];
     return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
       +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
-      +'<div><div class="nm">Команда «'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · сделано задач '+r.done+'</div></div></div>'
+      +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · сделано задач '+r.done+'</div></div></div>'
       +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
       +'<div class="score"><div class="n">'+r.points+'</div><div class="u">баллов</div></div></div>';
   }).join('')+'</div>';
@@ -504,6 +531,9 @@ function viewCabinet(){
   }
   const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
   const isOwner=AUTH.role==='manager'&&AUTH.manager_id===m.id;
+  return picks+'<div class="cab">'+cabinetInner(m,isOwner)+'</div>';
+}
+function cabinetInner(m,isOwner){
   const s=statsOf(m),info=contestInfo();
   const cells=workdays().map((iso,i)=>{
     const e=entryOf(m.id,i),eff=effToday();
@@ -531,7 +561,7 @@ function viewCabinet(){
     +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — особая задача на подарок'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
     +'<div class="cal-week"><span class="cal-wd">Пн</span><span class="cal-wd">Вт</span><span class="cal-wd">Ср</span><span class="cal-wd">Чт</span><span class="cal-wd">Пт</span></div>'
     +'<div class="cells">'+cells+'</div></div>';
-  return picks+'<div class="cab">'+cal+todayPanel(m,s,info,isOwner)+'</div>';
+  return cal+todayPanel(m,s,info,isOwner);
 }
 function todayPanel(m,s,info,isOwner){
   let card;
@@ -600,11 +630,13 @@ function viewReview(){
 
 /* ---- ADMIN ---- */
 function viewAdmin(){
+  const dirSel=(id,cur)=>'<select data-mid="'+id+'" data-f="direction">'+DIRS.map(d=>'<option '+((cur||'ЦК')===d?'selected':'')+'>'+d+'</option>').join('')+'</select>';
   const mlist=S.managers.map(m=>{const{col,ini}=avatar(m);
     return '<div class="mrow"><div class="ava" style="background:'+col+'">'+ini+'</div>'
-      +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:140px">'
-      +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="команда" style="flex:1;min-width:90px">'
-      +'<input value="" data-mid="'+m.id+'" data-f="pin" placeholder="PIN" maxlength="4" style="width:70px" inputmode="numeric">'
+      +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:130px">'
+      +dirSel(m.id,m.direction)
+      +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="отдел" style="flex:1;min-width:80px">'
+      +'<input value="" data-mid="'+m.id+'" data-f="pin" placeholder="PIN" maxlength="4" style="width:66px" inputmode="numeric">'
       +'<button class="btn sm ghost" data-action="save-mgr" data-id="'+m.id+'">Сохранить</button>'
       +'<button class="btn sm ghost" data-action="del-mgr" data-id="'+m.id+'" data-name="'+esc(m.full_name)+'">✕</button></div>'}).join('');
   const dayOpts=workdays().map(iso=>'<option value="'+iso+'" '+((S.settings.today_override===iso)?'selected':'')+'>'+fmtLong(iso)+', '+fmtWD(iso)+'</option>').join('');
@@ -612,8 +644,10 @@ function viewAdmin(){
     +'<div class="card"><h3>Участники и PIN-коды</h3>'
     +'<div class="note" style="margin-bottom:10px">PIN показывается один раз при добавлении. Здесь можно задать новый (впиши в поле PIN и «Сохранить»). Полный список для раздачи — кнопкой ниже.</div>'
     +(mlist||'<div class="note">Пока никого нет.</div>')
-    +'<div class="row2" style="margin-top:14px"><div class="field" style="margin:0"><label>Имя</label><input id="newName" placeholder="Фамилия Имя"></div>'
-    +'<div class="field" style="margin:0"><label>Команда</label><input id="newTeam" placeholder="Альфа"></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:14px">'
+    +'<div class="field" style="margin:0;flex:2;min-width:140px"><label>Имя</label><input id="newName" placeholder="Фамилия Имя"></div>'
+    +'<div class="field" style="margin:0;flex:1;min-width:90px"><label>Направление</label><select id="newDir">'+DIRS.map(d=>'<option>'+d+'</option>').join('')+'</select></div>'
+    +'<div class="field" style="margin:0;flex:1;min-width:90px"><label>Отдел</label><input id="newTeam" placeholder="Отдел 1"></div>'
     +'<button class="btn primary" data-action="add-mgr">+ Добавить</button></div>'
     +'<div style="margin-top:12px"><button class="btn" data-action="list-pins">📋 Показать список PIN-кодов</button></div></div>'
 
@@ -621,14 +655,7 @@ function viewAdmin(){
     +'<div class="field"><label>Считать «сегодня» датой</label><select data-action="set-today"><option value="">— выключить (реальная дата) —</option>'+dayOpts+'</select></div>'
     +'<div class="note">Перематывает календарь на любой день октября для предпросмотра. Перед стартом конкурса выключи.</div></div>'
 
-    +'<div class="card"><h3>Ежедневные задачи (+1 балл)</h3>'
-    +'<div class="note" style="margin-bottom:8px">Одна задача на строку. У каждого менеджера — своя из списка.</div>'
-    +'<textarea id="poolReg" rows="10">'+esc(S.reg.map(x=>x.body).join('\n'))+'</textarea></div>'
-    +'<div class="card"><h3>Особые задачи (🎁 подарок)</h3>'
-    +'<div class="note" style="margin-bottom:8px">Каждому случайно выпадает 5 штук на месяц.</div>'
-    +'<textarea id="poolSpec" rows="7">'+esc(S.sp.map(x=>x.body).join('\n'))+'</textarea>'
-    +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи</button> '
-    +'<span class="note">Применится ко всем; уже начатые дни не перезапишутся.</span></div></div>'
+    +poolsCard()
 
     +'<div class="card"><h3>Название и PIN администратора</h3>'
     +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
@@ -638,6 +665,19 @@ function viewAdmin(){
 
     +'<div class="card"><h3>Сброс</h3><div class="note" style="margin-bottom:12px">Очистить все отметки и отчёты у всех. Задачи и участники останутся. Сделай перед реальным стартом.</div>'
     +'<button class="btn danger" data-action="reset-progress">Сбросить весь прогресс</button></div></div>';
+}
+function poolsCard(){
+  const dir=UI.poolDir;
+  const reg=S.reg.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.body).join('\n');
+  const sp =S.sp.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.body).join('\n');
+  return '<div class="card"><h3>Задачи по направлениям</h3>'
+    +'<div class="seg" style="margin-bottom:12px">'+DIRS.map(d=>'<button data-action="pooldir" data-dir="'+d+'" aria-current="'+(dir===d)+'">'+d+'</button>').join('')+'</div>'
+    +'<div class="note" style="margin-bottom:6px">Направление <b>'+esc(dir)+'</b> · ежедневные задачи (одна на строку, +1 балл):</div>'
+    +'<textarea id="poolReg" rows="9">'+esc(reg)+'</textarea>'
+    +'<div class="note" style="margin:12px 0 6px">Особые задачи (🎁 подарок), одна на строку:</div>'
+    +'<textarea id="poolSpec" rows="6">'+esc(sp)+'</textarea>'
+    +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи «'+esc(dir)+'»</button> '
+    +'<span class="note">Применится к менеджерам этого направления; начатые дни не перезапишутся.</span></div></div>';
 }
 
 /* =====================================================================
@@ -650,6 +690,8 @@ document.addEventListener('click',async e=>{
   if(a==='zoom')return lightbox(t.getAttribute('src'));
   if(a==='nav'){UI.view=t.dataset.view;persist();render();scrollTo(0,0);return}
   if(a==='lbtab'){UI.lbTab=t.dataset.tab;persist();render();return}
+  if(a==='dir'){UI.dirFilter=t.dataset.dir;persist();render();return}
+  if(a==='pooldir'){UI.poolDir=t.dataset.dir;persist();render();return}
   if(a==='login-tab'){UI.loginTab=t.dataset.tab;render();return}
   if(a==='logout'){AUTH={role:'guest'};UI.view='board';persist();render();return}
   if(a==='open-cab'){ if(AUTH.role==='admin'){UI.view='cabinet';UI.managerId=t.dataset.id;persist();render();scrollTo(0,0);} return}
@@ -699,23 +741,23 @@ document.addEventListener('click',async e=>{
   if(a==='review'){return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
 
   if(a==='add-mgr'){
-    const name=$('#newName').value.trim(), team=$('#newTeam').value.trim();
+    const name=$('#newName').value.trim(), team=$('#newTeam').value.trim(), dir=$('#newDir').value;
     if(!name)return toast('Введи имя');
-    const r=await act('admin_add_manager',{p_token:AUTH.token,p_name:name,p_team:team});
-    if(r&&r.ok)setTimeout(()=>alert('Добавлен: '+name+'\nPIN: '+r.pin+'\n\nЗапиши и передай менеджеру.'),50);
+    const r=await act('admin_add_manager',{p_token:AUTH.token,p_name:name,p_team:team,p_direction:dir});
+    if(r&&r.ok)setTimeout(()=>alert('Добавлен: '+name+' ('+dir+')\nPIN: '+r.pin+'\n\nЗапиши и передай менеджеру.'),50);
     return;
   }
   if(a==='save-mgr'){
     const id=t.dataset.id, get=f=>{const el=document.querySelector('[data-mid="'+id+'"][data-f="'+f+'"]');return el?el.value.trim():''};
     const pin=get('pin');
     if(pin&&!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
-    return act('admin_update_manager',{p_token:AUTH.token,p_id:id,p_name:get('name'),p_team:get('team'),p_pin:pin||null,p_active:true},'Сохранено');
+    return act('admin_update_manager',{p_token:AUTH.token,p_id:id,p_name:get('name'),p_team:get('team'),p_pin:pin||null,p_active:true,p_direction:get('direction')},'Сохранено');
   }
   if(a==='del-mgr'){if(confirm('Удалить '+t.dataset.name+'? Прогресс участника тоже удалится.'))return act('admin_delete_manager',{p_token:AUTH.token,p_id:t.dataset.id},'Удалён');return}
   if(a==='save-pools'){
     const reg=$('#poolReg').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const sp=$('#poolSpec').value.split('\n').map(s=>s.trim()).filter(Boolean);
-    return act('admin_set_pools',{p_token:AUTH.token,p_regular:reg,p_special:sp},'Задачи сохранены');
+    return act('admin_set_pools',{p_token:AUTH.token,p_direction:UI.poolDir,p_regular:reg,p_special:sp},'Задачи «'+UI.poolDir+'» сохранены');
   }
   if(a==='set-today'){return}
   if(a==='save-settings'){
