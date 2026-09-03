@@ -266,6 +266,31 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .rv-emojis{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
 .rv-emojis i{position:absolute;top:-12%;font-style:normal;animation:efall linear forwards}
 @keyframes efall{0%{opacity:0;transform:translateY(-30px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(420px) rotate(var(--r))}}
+.mystery{border:2px dashed var(--brand);border-radius:var(--r-sm);padding:20px 16px;text-align:center;background:var(--brand-soft);display:flex;flex-direction:column;gap:8px;align-items:center}
+.mystery-q{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--plum));color:#fff;font-family:var(--serif);font-weight:700;font-size:30px;display:grid;place-items:center;box-shadow:var(--sh);animation:qbob 1.6s ease-in-out infinite}
+@keyframes qbob{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+.mystery .mtitle{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink)}
+.mbtn{width:100%;justify-content:center;margin-top:2px}
+.rv-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:6;animation:rvflash .55s ease-out}
+@keyframes rvflash{0%{opacity:.9}100%{opacity:0}}
+.catrv{position:fixed;inset:0;z-index:90;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#2E86FF,#0B2E66 65%,#05132e);animation:catshake .16s linear infinite}
+@keyframes catshake{0%{transform:translate(0,0)}20%{transform:translate(-5px,4px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-4px)}80%{transform:translate(4px,4px)}100%{transform:translate(0,0)}}
+.catrv-ripple{position:absolute;inset:-25%;background:repeating-radial-gradient(circle at 50% 45%,rgba(255,255,255,.08) 0,rgba(255,255,255,.08) 2px,transparent 3px,transparent 12px);mix-blend-mode:overlay;animation:catripple 2.2s linear infinite;pointer-events:none}
+@keyframes catripple{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+.catrv-scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 2px,transparent 4px);pointer-events:none;animation:catscan .18s steps(2) infinite}
+@keyframes catscan{to{transform:translateY(4px)}}
+.catrv-cats{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.catrv-cats i{position:absolute;bottom:-12%;font-style:normal;animation:catfloat linear infinite;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+@keyframes catfloat{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-120vh) rotate(var(--r));opacity:0}}
+.catrv-box{position:relative;z-index:2;background:rgba(9,26,60,.74);border:2px solid #7FB3FF;border-radius:22px;box-shadow:0 0 70px rgba(70,150,255,.65);max-width:460px;width:calc(100% - 40px);padding:24px 22px;text-align:center;color:#fff}
+.catrv-title{font-family:var(--sans);font-weight:800;font-size:30px;text-transform:uppercase;letter-spacing:.02em;color:#fff;text-shadow:0 0 16px rgba(150,200,255,.95);animation:cattitle .35s ease-in-out infinite alternate}
+@keyframes cattitle{from{transform:scale(1) rotate(-1.5deg)}to{transform:scale(1.06) rotate(1.5deg)}}
+.catrv-emoji{font-size:66px;margin:4px 0;animation:catspin 1.1s ease-in-out infinite}
+@keyframes catspin{0%,100%{transform:rotate(-12deg) scale(1)}50%{transform:rotate(12deg) scale(1.15)}}
+.catrv-task{font-size:17px;line-height:1.4;font-weight:600;margin:6px 0}
+.catrv-warn{background:#B3261E;border-radius:8px;padding:9px 11px;font-weight:700;font-size:13px;margin-top:8px}
+.catrv-btn{margin-top:14px;width:100%;justify-content:center;font-weight:800;font-size:15px;padding:12px}
+.catrv-btn:disabled{opacity:.75;cursor:not-allowed}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -604,8 +629,8 @@ function cabinetInner(m,isOwner){
     const rel=iso<eff?'past':(iso===eff?'today':'future');
     const hasSpec=ents.some(e=>e.kind==='special');
     const hasCat=ents.some(e=>e.kind==='cat');
-    const showSpec=hasSpec&&rel!=='future';           // #4: бонус скрыт на будущих днях
-    const showCat=hasCat&&rel!=='future';
+    const showSpec=hasSpec&&rel==='past';             // метки видны только на прошлых днях
+    const showCat=hasCat&&rel==='past';               // сегодня — сюрприз, заранее не палим
     let cls='cell '+rel+(showSpec?' spec':'')+(showCat?' catday':''),ic='';
     const opened=ents.some(e=>e.opened_at);
     const allAppr=ents.length>0&&ents.every(e=>e.review==='approved');
@@ -621,7 +646,7 @@ function cabinetInner(m,isOwner){
       else if(anyPend){cls+=' review';ic='⏳'}
       else{cls+=' miss';ic='✕'}
     }
-    const attrs=(rel!=='future')?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
+    const attrs=(rel==='past')?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
     return '<button class="'+cls+'" style="grid-column-start:'+parseISO(iso).getDay()+'" '+attrs+' title="'+fmtLong(iso)+'"><div><div class="d">'+fmtD(iso)+'</div></div>'
       +'<div style="display:flex;justify-content:flex-end;align-items:flex-end"><div class="ic">'+ic+'</div></div></button>';
   }).join('');
@@ -638,7 +663,24 @@ function todayPanel(m,s,info,isOwner){
   }else{
     const ents=dayEntries(m.id,info.idx);
     if(!ents.length){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
-    else{card='<div class="taskstack">'+ents.map(e=>taskBlock(e,isOwner)).join('')+'</div>';}
+    else{
+      const pr=e=>e.kind==='regular'?1:0;                 // кот/бонус открываются первыми
+      const opened=ents.filter(e=>e.opened_at).sort((a,b)=>pr(a)-pr(b));
+      const hasUnopened=ents.some(e=>!e.opened_at);
+      let parts=opened.map(e=>taskBlock(e,isOwner));
+      if(hasUnopened){
+        if(isOwner){
+          const label=opened.length?'Открыть следующее задание':'Открыть задание дня';
+          parts.push('<div class="mystery"><div class="mystery-q">?</div>'
+            +'<div class="mtitle">'+(opened.length?'Есть ещё задание…':'Задание дня ждёт')+'</div>'
+            +'<div class="note">Что внутри — узнаешь, только открыв. Жми!</div>'
+            +'<button class="btn primary mbtn" data-action="open-next" data-mid="'+m.id+'" data-day="'+info.idx+'">'+label+'</button></div>');
+        }else{
+          parts.push('<div class="reveal hidden"><div class="lockart">🔒</div><div class="note">Менеджер ещё не открыл '+(opened.length?'всё':'задание дня')+'.</div></div>');
+        }
+      }
+      card='<div class="taskstack">'+parts.join('')+'</div>';
+    }
   }
   return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задачи дня</div></div>'
     +card+'<div class="mini"><div class="box"><div class="n">'+s.points+'</div><div class="l">баллов</div></div>'
@@ -846,13 +888,13 @@ document.addEventListener('click',async e=>{
   }
 
   if(a==='close-reveal')return;
-  if(a==='open-cell'){
-    const eid=t.dataset.eid;
-    const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
-    if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
-    if(r.ok===false){toast(errMsg(r.err));return}
-    await loadAll();render();
-    showRevealModal(S.entries.find(x=>x.id===eid));
+  if(a==='open-cell'){ await openAndReveal(t.dataset.eid); return; }
+  if(a==='open-next'){
+    const mid=t.dataset.mid, day=+t.dataset.day;
+    const un=dayEntries(mid,day).filter(e=>!e.opened_at);
+    if(!un.length)return;
+    un.sort((a,b)=>(a.kind==='regular'?1:0)-(b.kind==='regular'?1:0)); // кот/бонус первыми
+    await openAndReveal(un[0].id);
     return;
   }
 
@@ -955,6 +997,65 @@ function showReassignModal(eid){
 }
 let reassignOv=null;
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
+async function openAndReveal(eid){
+  const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
+  if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
+  if(r.ok===false){toast(errMsg(r.err));return}
+  await loadAll();render();
+  const e=S.entries.find(x=>x.id===eid);
+  if(e&&e.kind==='cat')showCatReveal(e); else showRevealModal(e);
+}
+function playCatSound(){
+  let done=false;
+  try{const a=new Audio('./cat.mp3');a.volume=0.75;a.play().then(()=>{done=true}).catch(()=>{if(!done)synthMeow()});}
+  catch(e){synthMeow()}
+}
+function synthMeow(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); if(ctx.state==='suspended')ctx.resume();
+    const now=ctx.currentTime;
+    for(let i=0;i<5;i++){const t=now+i*0.42;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(520+i*30,t);
+      o.frequency.exponentialRampToValueAtTime(780+i*30,t+0.12);
+      o.frequency.exponentialRampToValueAtTime(430+i*20,t+0.34);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.22,t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.42);}
+    setTimeout(()=>{try{ctx.close()}catch(e){}},3200);
+  }catch(e){}
+}
+function showCatReveal(e){
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  playCatSound();
+  const ov=document.createElement('div');ov.className='catrv';
+  ov.innerHTML='<div class="catrv-ripple"></div><div class="catrv-scan"></div><div class="catrv-cats"></div>'
+    +'<div class="catrv-box">'
+    +'<div class="catrv-title">🐱 КОТ В МЕШКЕ!</div>'
+    +'<div class="catrv-emoji">🙀</div>'
+    +'<div class="catrv-task">'+esc(e.task_text)+'</div>'
+    +'<div class="catrv-warn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>'
+    +'<button class="btn primary catrv-btn" data-action="close-catrv" disabled>Смотри внимательно… 5</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  const catset=['🐱','😹','😼','😻','🙀','😾','😸','🐈','😺','🐈‍⬛'];
+  if(!reduce){const box=ov.querySelector('.catrv-cats');
+    for(let i=0;i<28;i++){const s=document.createElement('i');s.textContent=catset[Math.floor(Math.random()*catset.length)];
+      s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.fontSize=(26+Math.random()*40).toFixed(0)+'px';
+      s.style.animationDuration=(2.6+Math.random()*2.6).toFixed(2)+'s';s.style.animationDelay=(Math.random()*2.2).toFixed(2)+'s';
+      s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');box.appendChild(s);}}
+  const btn=ov.querySelector('.catrv-btn');
+  let remain=5;
+  const iv=setInterval(()=>{remain--;
+    if(remain>0){btn.textContent='Смотри внимательно… '+remain;}
+    else{clearInterval(iv);btn.disabled=false;btn.textContent='ПРИНЯТЬ ВЫЗОВ 😼';}
+  },1000);
+  const close=()=>{if(remain>0)return;clearInterval(iv);ov.remove()};
+  ov.addEventListener('click',ev=>{if(ev.target.closest('[data-action="close-catrv"]'))close()});
+}
 function showRevealModal(e){
   if(!e)return;
   const spec=e.kind==='special', cat=e.kind==='cat';
@@ -978,18 +1079,18 @@ function showRevealModal(e){
     +pill
     +'<div class="rv-task">'+esc(e.task_text)+'</div>'+warn
     +'<button class="btn primary rv-go" data-action="close-reveal">'+btn+'</button></div>'
-    +'<div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
+    +'<div class="rv-flash"></div><div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
   document.body.appendChild(ov);
   if(!reduce){
     const c=ov.querySelector('.rv-confetti');
     const cols=cat?['#D93A2F','#B3261E','#7A130C','#E85141','#3a0a06']:['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
-    for(let i=0;i<42;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=60+Math.random()*150;
+    for(let i=0;i<64;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=60+Math.random()*180;
       s.style.setProperty('--x',Math.round(Math.cos(ang*Math.PI/180)*dist)+'px');
       s.style.setProperty('--y',Math.round(Math.sin(ang*Math.PI/180)*dist)+'px');
-      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.25).toFixed(2)+'s';c.appendChild(s);}
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';c.appendChild(s);}
     const em=ov.querySelector('.rv-emojis');
     const set=cat?['🐱','😱','🔥','💀','⚠️','😾','🙀','💣']:spec?['🎁','🎉','✨','💎','🥳','🤑','👑','🔥']:['🔥','💪','🚀','⚡','🎯','💰','🏆','😤','💯'];
-    for(let i=0;i<16;i++){const s=document.createElement('i');s.textContent=set[Math.floor(Math.random()*set.length)];
+    for(let i=0;i<26;i++){const s=document.createElement('i');s.textContent=set[Math.floor(Math.random()*set.length)];
       s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.animationDuration=(1.1+Math.random()*0.9).toFixed(2)+'s';
       s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');
       s.style.fontSize=(20+Math.random()*16).toFixed(0)+'px';em.appendChild(s);}
