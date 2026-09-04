@@ -520,6 +520,7 @@ function render(){
     '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
   root.querySelectorAll('.shotinput').forEach(inp=>inp.addEventListener('change',onShotPick));
   root.querySelectorAll('.avainput').forEach(inp=>inp.addEventListener('change',onAvatarPick));
+  if(UI.view==='login')wireLogin();
   renderBlitzWidget();
   const lg=root.querySelector('.leaf img');
   if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
@@ -657,15 +658,16 @@ function cabinetInner(m,isOwner){
   const cells=workdays().map((iso,i)=>{
     const ents=dayEntries(m.id,i),eff=effToday();
     const rel=iso<eff?'past':(iso===eff?'today':'future');
+    const isAdmin=AUTH.role==='admin';
     const hasSpec=ents.some(e=>e.kind==='special');
     const hasCat=ents.some(e=>e.kind==='cat');
-    const showSpec=hasSpec&&rel==='past';             // метки видны только на прошлых днях
-    const showCat=hasCat&&rel==='past';               // сегодня — сюрприз, заранее не палим
+    const showSpec=hasSpec&&(isAdmin||rel==='past');  // админ видит метки и на будущих днях
+    const showCat=hasCat&&(isAdmin||rel==='past');    // менеджеру сегодня/будущее — сюрприз
     let cls='cell '+rel+(showSpec?' spec':'')+(showCat?' catday':''),ic='';
     const opened=ents.some(e=>e.opened_at);
     const allAppr=ents.length>0&&ents.every(e=>e.review==='approved');
     const anyPend=ents.some(e=>e.review==='pending');
-    if(rel==='future')ic='🔒';
+    if(rel==='future')ic=showCat?'🐱':showSpec?'🎁':'🔒';
     else if(rel==='today'){
       if(allAppr){cls+=' done-today';ic='✓'}
       else if(anyPend){cls+=' review-today';ic='⏳'}
@@ -676,7 +678,7 @@ function cabinetInner(m,isOwner){
       else if(anyPend){cls+=' review';ic='⏳'}
       else{cls+=' miss';ic='✕'}
     }
-    const attrs=(rel==='past')?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
+    const attrs=(rel==='past'||isAdmin)?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
     return '<button class="'+cls+'" style="grid-column-start:'+parseISO(iso).getDay()+'" '+attrs+' title="'+fmtLong(iso)+'"><div><div class="d">'+fmtD(iso)+'</div></div>'
       +'<div style="display:flex;justify-content:flex-end;align-items:flex-end"><div class="ic">'+ic+'</div></div></button>';
   }).join('');
@@ -729,7 +731,7 @@ function taskBlock(e,interactive){
     :'<span class="pill reg">Ежедневная — +1 балл</span>';
   const blockcls=cat?'cat':(spec?'spec':'');
   let inner='';
-  const locked=!e.opened_at && rel!=='past';        // прошлые дни раскрываем всегда
+  const locked=!e.opened_at && rel!=='past' && AUTH.role!=='admin';   // админ видит задачи всегда
   if(locked){
     inner=interactive
       ?'<div class="note">Нажми, чтобы открыть задание дня.</div><button class="btn primary sm" data-action="open-cell" data-eid="'+e.id+'">Открыть '+(cat?'кота 🐱':spec?'бонус 🎁':'задачу')+'</button>'
@@ -1279,6 +1281,14 @@ function blitzTick(){
   const active=blitzActive(),w=document.getElementById('blitzWidget');
   if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
   else if(w){ w.remove(); }
+}
+function wireLogin(){
+  const lp=$('#loginPin'), ln=$('#loginName'), ap=$('#adminPin');
+  const tryMgr=()=>{ if(ln&&ln.value&&/^\d{4}$/.test((lp&&lp.value)||'')){const b=$('[data-action="do-login-mgr"]');if(b)b.click();} };
+  if(lp){lp.addEventListener('input',tryMgr);
+    lp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=$('[data-action="do-login-mgr"]');if(b)b.click();}});}
+  if(ln)ln.addEventListener('change',tryMgr);
+  if(ap)ap.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=$('[data-action="do-login-admin"]');if(b)b.click();}});
 }
 function toggleTheme(){const el=document.documentElement,cur=el.getAttribute('data-theme'),
   sysDark=matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches;
