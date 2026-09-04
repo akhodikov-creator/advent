@@ -291,6 +291,22 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .catrv-warn{background:#B3261E;border-radius:8px;padding:9px 11px;font-weight:700;font-size:13px;margin-top:8px}
 .catrv-btn{margin-top:14px;width:100%;justify-content:center;font-weight:800;font-size:15px;padding:12px}
 .catrv-btn:disabled{opacity:.75;cursor:not-allowed}
+.rv-fw{position:fixed;inset:0;pointer-events:none;z-index:1}
+.reveal-ov .reveal-modal{position:relative;z-index:3}
+#blitzWidget{position:fixed;top:72px;right:14px;z-index:65;width:290px;max-width:calc(100vw - 28px);background:var(--surface);border:2px solid #E4BE5C;border-radius:14px;box-shadow:0 0 0 3px rgba(240,180,41,.25),var(--sh-lg);padding:14px 15px;display:flex;flex-direction:column;gap:8px;animation:bwpop .35s cubic-bezier(.2,.8,.3,1.1)}
+@keyframes bwpop{from{transform:translateY(-12px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.bw-head{font-weight:800;font-size:14px;color:#B07A0E;letter-spacing:.03em}
+.bw-task{font-size:14px;line-height:1.4;font-weight:600;color:var(--ink)}
+.bw-winner{background:var(--good-soft);color:var(--good);border-radius:8px;padding:7px 9px;font-size:12.5px;font-weight:700}
+.bw-hint{font-size:12px;color:var(--muted)}
+.bw-timer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+#blitzWidget textarea{font-size:13px}
+@media(max-width:720px){#blitzWidget{top:8px;right:8px;left:8px;width:auto}}
+.blist{display:flex;flex-direction:column;gap:8px}
+.brow{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center}
+.brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
+.brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+@media(max-width:640px){.brow{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -326,12 +342,12 @@ const UI = load('advUI', {view:'board', lbTab:'people', managerId:null});
 let AUTH = load('advAuth', {role:'guest'});
 function load(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}}
 function persist(){try{localStorage.setItem('advUI',JSON.stringify(UI));localStorage.setItem('advAuth',JSON.stringify(AUTH))}catch(e){}}
-const DIRS=['СРБ','ПМ','ЦК'];
+const DIRS=['СРБ','ПМ','ЦК','ТЭ'];
 if(!UI.dirFilter)UI.dirFilter='all';
 if(!UI.poolDir)UI.poolDir='СРБ';
 
 /* ---------- данные с сервера ---------- */
-let S = {settings:null, managers:[], entries:[], reg:[], sp:[], cat:[]};
+let S = {settings:null, managers:[], entries:[], reg:[], sp:[], cat:[], blitz:[]};
 let byMgr = {};   // managerId -> {dayIndex -> entry}
 let loading=true, pendingShots={};
 
@@ -361,12 +377,20 @@ function rebuildIndex(){
 }
 function dayEntries(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];if(!d)return [];const a=[];if(d.regular)a.push(d.regular);if(d.special)a.push(d.special);if(d.cat)a.push(d.cat);return a}
 function entryOf(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];return d?(d.regular||d.special||null):null}
+function yektNow(){const now=new Date();return new Date(now.getTime()+now.getTimezoneOffset()*60000+5*3600000)}
 function pastDeadline(){
   if(S.settings&&S.settings.today_override)return false;   // тест-режим — без дедлайна
-  const now=new Date();
-  const yektH=new Date(now.getTime()+now.getTimezoneOffset()*60000+5*3600000).getHours();
-  return yektH>=20;   // после 20:00 по Екатеринбургу
+  return yektNow().getHours()>=20;   // после 20:00 по Екатеринбургу
 }
+function blitzForToday(){const eff=effToday();return (S.blitz||[]).find(b=>b.edate===eff && b.body && b.body.trim())}
+function blitzWindowNow(){
+  if(S.settings&&S.settings.today_override)return true;    // тест-режим — окно не проверяем
+  const y=yektNow(),m=y.getHours()*60+y.getMinutes();
+  return m>=900 && m<930;                                  // 15:00–15:30 ЕКБ
+}
+function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
+function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
+function mgrName(id){const m=S.managers.find(x=>x.id===id);return m?m.full_name:'—'}
 function statsOf(m){
   let points=0,gifts=0,missed=0,pending=0,tasksDone=0,tasksElapsed=0;
   const eff=effToday(), arr=entByMgr[m.id]||[];
@@ -380,6 +404,7 @@ function statsOf(m){
       if(done){points++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
     }
   });
+  const bw=blitzWins(m.id); points+=bw; tasksDone+=bw;     // блиц-победы: +1 балл
   return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
 }
 function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
@@ -406,24 +431,25 @@ async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error)thr
 async function loadAll(){
   try{
     const data=await rpc('bootstrap');           // один запрос вместо шести
-    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.entries=data.entries||[];
+    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.entries=data.entries||[];
   }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
-    const [st,mg,rg,sp,ct,en]=await Promise.all([
+    const [st,mg,rg,sp,ct,bz,en]=await Promise.all([
       sb.from('app_settings').select('*').eq('id',1).single(),
       sb.from('managers').select('id,full_name,team,seat,active,direction,avatar_url').eq('active',true).order('seat'),
       sb.from('pool_regular').select('*').order('ord'),
       sb.from('pool_special').select('*').order('ord'),
       sb.from('pool_cat').select('*').order('ord'),
+      sb.from('blitz').select('*'),
       sb.from('entries').select('*')
     ]);
     if(st.error)throw st.error;
-    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.entries=en.data||[];
+    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.blitz=(bz&&bz.data)||[]; S.entries=en.data||[];
   }
   rebuildIndex(); loading=false; cacheSave();
 }
-function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,entries:S.entries}))}catch(e){}}
+function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,blitz:S.blitz,entries:S.entries}))}catch(e){}}
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
-  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
+  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.blitz=c.blitz||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
 let reloadT;
 function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(render).catch(()=>{}),400)}
 function subscribeRealtime(){
@@ -450,7 +476,9 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
   deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя',
   no_reassign:'Переназначить кота можно только один раз',
   bad_target:'Этому участнику нельзя передать — у него уже есть бонус или кот в этот день',
-  self:'Нельзя передать самому себе'})[code]||'Не получилось'}
+  self:'Нельзя передать самому себе',
+  no_blitz:'Блиц-задание сейчас не активно',
+  blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -491,6 +519,7 @@ function render(){
     '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
   root.querySelectorAll('.shotinput').forEach(inp=>inp.addEventListener('change',onShotPick));
   root.querySelectorAll('.avainput').forEach(inp=>inp.addEventListener('change',onAvatarPick));
+  renderBlitzWidget();
   const lg=root.querySelector('.leaf img');
   if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
     lg.onerror=fb; if(lg.complete&&lg.naturalWidth===0)fb();}
@@ -666,20 +695,23 @@ function todayPanel(m,s,info,isOwner){
     else{
       const pr=e=>e.kind==='regular'?1:0;                 // кот/бонус открываются первыми
       const opened=ents.filter(e=>e.opened_at).sort((a,b)=>pr(a)-pr(b));
-      const hasUnopened=ents.some(e=>!e.opened_at);
-      let parts=opened.map(e=>taskBlock(e,isOwner));
-      if(hasUnopened){
+      const unopened=ents.filter(e=>!e.opened_at);
+      const openedBlocks=opened.map(e=>taskBlock(e,isOwner));
+      let myst='';
+      if(unopened.length){
         if(isOwner){
           const label=opened.length?'Открыть следующее задание':'Открыть задание дня';
-          parts.push('<div class="mystery"><div class="mystery-q">?</div>'
-            +'<div class="mtitle">'+(opened.length?'Есть ещё задание…':'Задание дня ждёт')+'</div>'
+          myst='<div class="mystery"><div class="mystery-q">?</div>'
+            +'<div class="mtitle">'+(opened.length?'У тебя ещё задание!':'Задание дня ждёт')+'</div>'
             +'<div class="note">Что внутри — узнаешь, только открыв. Жми!</div>'
-            +'<button class="btn primary mbtn" data-action="open-next" data-mid="'+m.id+'" data-day="'+info.idx+'">'+label+'</button></div>');
+            +'<button class="btn primary mbtn" data-action="open-next" data-mid="'+m.id+'" data-day="'+info.idx+'">'+label+'</button></div>';
         }else{
-          parts.push('<div class="reveal hidden"><div class="lockart">🔒</div><div class="note">Менеджер ещё не открыл '+(opened.length?'всё':'задание дня')+'.</div></div>');
+          myst='<div class="reveal hidden"><div class="lockart">🔒</div><div class="note">Менеджер ещё не открыл '+(opened.length?'всё':'задание дня')+'.</div></div>';
         }
       }
-      card='<div class="taskstack">'+parts.join('')+'</div>';
+      const highUnopened=unopened.some(e=>e.kind!=='regular');   // кот/бонус прилетел — меню сверху
+      const parts=highUnopened?[myst].concat(openedBlocks):openedBlocks.concat(myst);
+      card='<div class="taskstack">'+parts.filter(Boolean).join('')+'</div>';
     }
   }
   return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задачи дня</div></div>'
@@ -819,6 +851,8 @@ function viewAdmin(){
     +'<div class="note" style="margin-bottom:12px">Каждый день «кот» случайно достаётся 2 участникам (сверх обычных задач, но не в день бонуса). Кнопка раздаёт котов заново на все дни — жми после того, как добавил всех участников и задачи «кота» по направлениям.</div>'
     +'<button class="btn" data-action="assign-cats">🐱 Раздать «Котов в мешке»</button></div>'
 
+    +blitzCard()
+
     +'<div class="card"><h3>Название и PIN администратора</h3>'
     +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
     +'<div class="field" style="margin:0"><label>Подзаголовок</label><input id="setSub" value="'+esc(S.settings.subtitle)+'"></div><span></span></div>'
@@ -843,6 +877,18 @@ function poolsCard(){
     +'<textarea id="poolCat" rows="5">'+esc(catv)+'</textarea>'
     +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи «'+esc(dir)+'»</button> '
     +'<span class="note">Применится к менеджерам этого направления; начатые дни не перезапишутся.</span></div></div>';
+}
+function blitzCard(){
+  const rows=workdays().map(iso=>{
+    const b=(S.blitz||[]).find(x=>x.edate===iso)||{};
+    const winner=b.winner_manager_id?'<div class="bwin"><span class="pill done">🏆 '+esc(mgrName(b.winner_manager_id))+'</span> <button class="btn sm ghost" data-action="clear-blitz" data-date="'+iso+'">сбросить</button></div>':'';
+    return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+'</div>'
+      +'<input data-bz="'+iso+'" value="'+esc(b.body||'')+'" placeholder="Блиц-задание на этот день">'
+      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+'</div>';
+  }).join('');
+  return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
+    +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. В 15:00 по Екатеринбургу всплывёт у всех автоматически (окно 30 минут); первый, кто отправит отчёт, получает +1 балл. Заполняй заранее на нужные дни.</div>'
+    +'<div class="blist">'+rows+'</div></div>';
 }
 
 /* =====================================================================
@@ -897,6 +943,21 @@ document.addEventListener('click',async e=>{
     await openAndReveal(un[0].id);
     return;
   }
+  if(a==='blitz-submit'){
+    const rep=($('#bzReport')&&$('#bzReport').value||'').trim();
+    if(!rep)return toast('Напиши пару слов — что сделал');
+    const r=await rpc('blitz_submit',{p_token:AUTH.token,p_report:rep}).catch(()=>null);
+    if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
+    if(r.ok===false)return toast(errMsg(r.err));
+    await loadAll();render();
+    toast(r.won?'🏆 Ты первый! +1 балл':'Увы, кто-то успел раньше');
+    return;
+  }
+  if(a==='save-blitz'){
+    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]');
+    return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:''},'Блиц на '+fmtLong(iso)+' сохранён');
+  }
+  if(a==='clear-blitz'){if(confirm('Сбросить победителя блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
 
   if(a==='submit-report'){
     const eid=t.dataset.eid;
@@ -1028,6 +1089,40 @@ function synthMeow(){
     setTimeout(()=>{try{ctx.close()}catch(e){}},3200);
   }catch(e){}
 }
+function playFileSound(url,fallback){
+  let done=false;
+  try{const a=new Audio(url);a.volume=0.72;a.play().then(()=>{done=true}).catch(()=>{if(!done&&fallback)fallback()});}
+  catch(e){if(fallback)fallback()}
+}
+function synthChime(){
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();if(ctx.state==='suspended')ctx.resume();
+    const now=ctx.currentTime,notes=[523,659,784,1047];
+    notes.forEach((f,i)=>{const t=now+i*0.09,o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.55);});
+    setTimeout(()=>{try{ctx.close()}catch(e){}},2000);
+  }catch(e){}
+}
+function fireworks(host,duration){
+  const cv=document.createElement('canvas');cv.className='rv-fw';
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+  host.appendChild(cv);const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  const parts=[],cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#E5896A','#82B6F8','#B58BE0','#ff5252'];
+  function burst(x,y){const n=34+Math.floor(Math.random()*22),col=cols[Math.floor(Math.random()*cols.length)];
+    for(let i=0;i<n;i++){const a=(Math.PI*2*i)/n+Math.random()*0.3,sp=1.8+Math.random()*3.4;
+      parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col:Math.random()<0.25?cols[Math.floor(Math.random()*cols.length)]:col,r:1.6+Math.random()*1.8});}}
+  const start=performance.now();let lastBurst=0;
+  function frame(t){const el=t-start;ctx.clearRect(0,0,innerWidth,innerHeight);
+    if(el<duration-500 && t-lastBurst>Math.max(200,420-el/6)){lastBurst=t;burst(innerWidth*(0.15+Math.random()*0.7),innerHeight*(0.15+Math.random()*0.5));}
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy+=0.045;p.x+=p.vx;p.y+=p.vy;p.vx*=0.99;p.life-=0.011;
+      if(p.life<=0){parts.splice(i,1);continue;}
+      ctx.globalAlpha=Math.max(p.life,0);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+    ctx.globalAlpha=1;
+    if(el<duration||parts.length)requestAnimationFrame(frame);else cv.remove();
+  }
+  requestAnimationFrame(frame);
+}
 function showCatReveal(e){
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
   playCatSound();
@@ -1061,6 +1156,7 @@ function showRevealModal(e){
   const spec=e.kind==='special', cat=e.kind==='cat';
   const variant=cat?'cat':(spec?'spec':'');
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  playFileSound(spec?'./bonus.mp3':'./open.mp3', synthChime);
   const hypes=cat?['😱 КОТ В МЕШКЕ','ОПАСНОЕ ЗАДАНИЕ','НЕ ПРОВАЛИ','−2 ЗА ПРОВАЛ']
     :spec?['🎁 БОНУС!','ЖИРНЫЙ ЛУТ','ЛОВИ ПОДАРОК','РЕДКИЙ ДРОП']
     :['ЗАДАЧА ДНЯ','ТВОЙ ХОД','GO GO GO','ВЫЗОВ ПРИНЯТ'];
@@ -1081,6 +1177,7 @@ function showRevealModal(e){
     +'<button class="btn primary rv-go" data-action="close-reveal">'+btn+'</button></div>'
     +'<div class="rv-flash"></div><div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
   document.body.appendChild(ov);
+  if(!reduce)fireworks(ov,2600);
   if(!reduce){
     const c=ov.querySelector('.rv-confetti');
     const cols=cat?['#D93A2F','#B3261E','#7A130C','#E85141','#3a0a06']:['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
@@ -1099,6 +1196,67 @@ function showRevealModal(e){
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
   document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
 }
+function renderBlitzWidget(){
+  let w=document.getElementById('blitzWidget');
+  const b=blitzForToday();
+  if(!blitzActive()||!b){ if(w)w.remove(); return; }
+  const prev=(document.getElementById('bzReport')||{}).value||'';
+  if(!w){w=document.createElement('div');w.id='blitzWidget';document.body.appendChild(w);}
+  let h='<div class="bw-head">⚡ БЛИЦ-ЗАДАНИЕ</div><div class="bw-task">'+esc(b.body)+'</div>';
+  if(b.winner_manager_id){
+    const me=AUTH.role==='manager'&&AUTH.manager_id===b.winner_manager_id;
+    h+='<div class="bw-winner">🏆 Первым успел: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
+  }else if(AUTH.role==='manager'){
+    h+='<textarea id="bzReport" rows="2" placeholder="Что сделал (коротко)"></textarea>'
+      +'<button class="btn good sm" data-action="blitz-submit" style="width:100%;justify-content:center">Я выполнил — забрать +1</button>';
+  }else{
+    h+='<div class="bw-hint">Первый, кто выполнит, получит +1 балл. Войди, чтобы участвовать.</div>';
+  }
+  h+='<div class="bw-timer" id="bzTimer"></div>';
+  w.innerHTML=h;
+  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev;
+  updateBlitzTimer();
+}
+function updateBlitzTimer(){
+  const el=document.getElementById('bzTimer'); if(!el)return;
+  if(S.settings&&S.settings.today_override){el.textContent='тест-режим · окно открыто';return}
+  const y=yektNow(),sec=y.getHours()*3600+y.getMinutes()*60+y.getSeconds();
+  let left=(15*3600+30*60)-sec; if(left<0)left=0;
+  el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
+}
+function maybeShowBlitzPopup(){
+  const b=blitzForToday(); if(!b||!blitzActive())return;
+  const key='bzShown_'+b.edate; let shown=false;
+  try{shown=localStorage.getItem(key)==='1'}catch(e){}
+  if(shown||document.querySelector('.blitz-pop'))return;
+  try{localStorage.setItem(key,'1')}catch(e){}
+  showBlitzPopup(b);
+}
+function showBlitzPopup(b){
+  const ov=document.createElement('div');ov.className='reveal-ov rv-boom blitz-pop';
+  ov.innerHTML='<div class="reveal-modal rv-big" style="border-color:#E4BE5C">'
+    +'<div class="rv-hype" style="background:linear-gradient(90deg,#E4A11E,#C15E17);-webkit-background-clip:text;background-clip:text;color:transparent">⚡ БЛИЦ-ЗАДАНИЕ</div>'
+    +'<div class="rv-orb" style="background:radial-gradient(120% 120% at 30% 20%,#F0B429,#C15E17)">⚡</div>'
+    +'<div class="rv-content"><div class="rv-eyebrow">30 минут · первый забирает +1 балл</div>'
+    +'<div class="rv-task">'+esc(b.body)+'</div>'
+    +'<button class="btn primary rv-go" data-action="close-reveal">'+(AUTH.role==='manager'?'В БОЙ ⚡':'Понятно')+'</button></div>'
+    +'<div class="rv-confetti"></div></div>';
+  document.body.appendChild(ov);
+  playFileSound('./blitz.mp3',synthChime);
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(!reduce){fireworks(ov,2400);const c=ov.querySelector('.rv-confetti'),cols=['#F0B429','#E4BE5C','#C15E17','#FFD966','#E5896A'];
+    for(let i=0;i<44;i++){const s=document.createElement('i');const a=Math.random()*360,d=60+Math.random()*170;
+      s.style.setProperty('--x',Math.round(Math.cos(a*Math.PI/180)*d)+'px');s.style.setProperty('--y',Math.round(Math.sin(a*Math.PI/180)*d)+'px');
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.25).toFixed(2)+'s';c.appendChild(s);}}
+  const close=()=>ov.remove();
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
+}
+function blitzTick(){
+  updateBlitzTimer();
+  const active=blitzActive(),w=document.getElementById('blitzWidget');
+  if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
+  else if(w){ w.remove(); }
+}
 function toggleTheme(){const el=document.documentElement,cur=el.getAttribute('data-theme'),
   sysDark=matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches;
   let n; if(!cur)n=sysDark?'light':'dark'; else if(cur==='dark')n='light'; else n='dark';
@@ -1109,7 +1267,7 @@ try{const s=localStorage.getItem('advTheme');if(s)document.documentElement.setAt
 function start(){
   if(sb)return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  loadAll().then(()=>{render();subscribeRealtime()}).catch(err=>{
+  loadAll().then(()=>{render();subscribeRealtime();setInterval(blitzTick,1000)}).catch(err=>{
     console.error(err);
     if(loading){
       root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Не удалось подключиться к базе</h2>'
