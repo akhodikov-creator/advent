@@ -478,7 +478,8 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
   bad_target:'Этому участнику нельзя передать — у него уже есть бонус или кот в этот день',
   self:'Нельзя передать самому себе',
   no_blitz:'Блиц-задание сейчас не активно',
-  blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)'})[code]||'Не получилось'}
+  blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)',
+  reassign_expired:'Передать кота можно только 30 минут после открытия'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -750,9 +751,11 @@ function taskBlock(e,interactive){
       inner+= interactive?deadlineOrForm(e,'Отправить на проверку'):reportView(e);
     }
     if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
-      inner+= (e.reassigns_left||0)>0
-        ?'<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'">🫳 Скинуть кота другому (1 раз)</button>'
-        :'<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
+      const left=(e.reassigns_left||0)>0;
+      const inWin=e.opened_at && (Date.now()-new Date(e.opened_at).getTime()<=30*60000);
+      if(left&&inWin) inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'">🫳 Скинуть кота другому (только 30 мин!)</button>';
+      else if(left&&!inWin) inner+='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';
+      else inner+='<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
     }
   }
   return '<div class="taskblock '+blockcls+'">'+badge+inner+'</div>';
@@ -853,6 +856,8 @@ function viewAdmin(){
 
     +blitzCard()
 
+    +tgCard()
+
     +'<div class="card"><h3>Название и PIN администратора</h3>'
     +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
     +'<div class="field" style="margin:0"><label>Подзаголовок</label><input id="setSub" value="'+esc(S.settings.subtitle)+'"></div><span></span></div>'
@@ -889,6 +894,14 @@ function blitzCard(){
   return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
     +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. В 15:00 по Екатеринбургу всплывёт у всех автоматически (окно 30 минут); первый, кто отправит отчёт, получает +1 балл. Заполняй заранее на нужные дни.</div>'
     +'<div class="blist">'+rows+'</div></div>';
+}
+function tgCard(){
+  return '<div class="card"><h3>📣 Телеграм-уведомления</h3>'
+    +'<div class="note" style="margin-bottom:10px">Бот пишет в ваш канал: утренняя отбивка (9:00 ЕКБ), кто получил кота, перекидывания кота, итоги дня (20:30 ЕКБ). Как создать бота и канал — в инструкции TELEGRAM.md. Токен хранится в базе и наружу не виден; здесь его обратно не показать (можно только задать заново).</div>'
+    +'<div class="field"><label>Токен бота (от @BotFather)</label><input id="tgToken" placeholder="123456789:AA..." autocomplete="off"></div>'
+    +'<div class="field"><label>ID канала (@имя_канала или -100…)</label><input id="tgChat" placeholder="@my_channel"></div>'
+    +'<button class="btn primary" data-action="save-tg">Сохранить и включить</button> '
+    +'<button class="btn" data-action="test-tg">Отправить тест</button></div>';
 }
 
 /* =====================================================================
@@ -958,6 +971,16 @@ document.addEventListener('click',async e=>{
     return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:''},'Блиц на '+fmtLong(iso)+' сохранён');
   }
   if(a==='clear-blitz'){if(confirm('Сбросить победителя блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
+  if(a==='save-tg'){
+    const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim();
+    if(!tk||!ch)return toast('Заполни токен бота и ID канала');
+    return act('admin_set_tg',{p_token:AUTH.token,p_bot:tk,p_chat:ch,p_enabled:true},'Телеграм подключён');
+  }
+  if(a==='test-tg'){
+    const r=await rpc('tg_test',{p_token:AUTH.token}).catch(()=>null);
+    if(r&&r.ok)toast('Тест отправлен — проверь канал'); else toast('Не удалось (сначала сохрани настройки)');
+    return;
+  }
 
   if(a==='submit-report'){
     const eid=t.dataset.eid;
