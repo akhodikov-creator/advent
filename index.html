@@ -755,7 +755,8 @@ function taskBlock(e,interactive){
     if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
       const left=(e.reassigns_left||0)>0;
       const inWin=e.opened_at && (Date.now()-new Date(e.opened_at).getTime()<=30*60000);
-      if(left&&inWin) inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'">🫳 Скинуть кота другому (только 30 мин!)</button>';
+      if(left&&inWin){const dl=new Date(e.opened_at).getTime()+30*60000,ss=Math.max(0,Math.floor((dl-Date.now())/1000));
+        inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'" data-deadline="'+dl+'">🫳 Скинуть кота другому · '+Math.floor(ss/60)+':'+String(ss%60).padStart(2,'0')+'</button>';}
       else if(left&&!inWin) inner+='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';
       else inner+='<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
     }
@@ -1276,8 +1277,16 @@ function showBlitzPopup(b){
   const close=()=>ov.remove();
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
 }
+function updateCatTimers(){
+  document.querySelectorAll('.catgive[data-deadline]').forEach(b=>{
+    const left=(+b.dataset.deadline)-Date.now();
+    if(left<=0){b.outerHTML='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';return;}
+    const s=Math.floor(left/1000);
+    b.textContent='🫳 Скинуть кота другому · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  });
+}
 function blitzTick(){
-  updateBlitzTimer();
+  updateBlitzTimer(); updateCatTimers();
   const active=blitzActive(),w=document.getElementById('blitzWidget');
   if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
   else if(w){ w.remove(); }
