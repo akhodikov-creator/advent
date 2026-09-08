@@ -303,9 +303,10 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 #blitzWidget textarea{font-size:13px}
 @media(max-width:720px){#blitzWidget{top:8px;right:8px;left:8px;width:auto}}
 .blist{display:flex;flex-direction:column;gap:8px}
-.brow{display:grid;grid-template-columns:150px 1fr auto;gap:8px;align-items:center}
+.brow{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
-.brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center}
+.brow input[type="time"]{width:auto}
+.brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media(max-width:640px){.brow{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -383,10 +384,13 @@ function pastDeadline(){
   return yektNow().getHours()>=20;   // после 20:00 по Екатеринбургу
 }
 function blitzForToday(){const eff=effToday();return (S.blitz||[]).find(b=>b.edate===eff && b.body && b.body.trim())}
+function parseHHMM(t){const p=((t||'15:00')+'').split(':');return (+p[0])*60+(+p[1]||0)}
 function blitzWindowNow(){
-  if(S.settings&&S.settings.today_override)return true;    // тест-режим — окно не проверяем
-  const y=yektNow(),m=y.getHours()*60+y.getMinutes();
-  return m>=900 && m<930;                                  // 15:00–15:30 ЕКБ
+  const b=blitzForToday(); if(!b)return false;
+  if(b.started_at){const t=new Date(b.started_at).getTime(); if(Date.now()>=t && Date.now()<t+30*60000)return true;} // ручной запуск
+  if(S.settings&&S.settings.today_override)return true;    // тест-режим
+  const y=yektNow(),m=y.getHours()*60+y.getMinutes(),st=parseHHMM(b.start_time);
+  return m>=st && m<st+30;                                 // расписание start_time..+30мин ЕКБ
 }
 function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
 function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
@@ -479,7 +483,8 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
   self:'Нельзя передать самому себе',
   no_blitz:'Блиц-задание сейчас не активно',
   blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)',
-  reassign_expired:'Передать кота можно только 30 минут после открытия'})[code]||'Не получилось'}
+  reassign_expired:'Передать кота можно только 30 минут после открытия',
+  no_body:'Сначала впиши задание для этого дня'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -887,15 +892,23 @@ function poolsCard(){
     +'<span class="note">Применится к менеджерам этого направления; начатые дни не перезапишутся.</span></div></div>';
 }
 function blitzCard(){
+  const eff=effToday(), activeToday=blitzActive();
   const rows=workdays().map(iso=>{
     const b=(S.blitz||[]).find(x=>x.edate===iso)||{};
+    const tm=((b.start_time||'15:00:00')+'').slice(0,5);
     const winner=b.winner_manager_id?'<div class="bwin"><span class="pill done">🏆 '+esc(mgrName(b.winner_manager_id))+'</span> <button class="btn sm ghost" data-action="clear-blitz" data-date="'+iso+'">сбросить</button></div>':'';
-    return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+'</div>'
+    const launch = iso===eff
+      ? '<div class="bwin">'+(activeToday
+          ? '<span class="pill review">⚡ идёт сейчас</span> <button class="btn sm danger" data-action="stop-blitz" data-date="'+iso+'">Остановить</button>'
+          : '<button class="btn sm" data-action="launch-blitz" data-date="'+iso+'" style="border-color:#E4BE5C;color:#B07A0E">▶ Запустить сейчас (тест)</button>')+'</div>'
+      : '';
+    return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+(iso===eff?' · сегодня':'')+'</div>'
       +'<input data-bz="'+iso+'" value="'+esc(b.body||'')+'" placeholder="Блиц-задание на этот день">'
-      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+'</div>';
+      +'<input type="time" data-bztime="'+iso+'" value="'+tm+'" title="Время запуска (ЕКБ)">'
+      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+'</div>';
   }).join('');
   return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
-    +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. В 15:00 по Екатеринбургу всплывёт у всех автоматически (окно 30 минут); первый, кто отправит отчёт, получает +1 балл. Заполняй заранее на нужные дни.</div>'
+    +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. Всплывает у всех автоматически в указанное время (по умолчанию 15:00 ЕКБ) — время можно менять для каждого дня. Окно 30 минут; первый, кто отправит отчёт, получает +1 балл. Кнопка <b>«Запустить сейчас»</b> — для теста: блиц немедленно всплывёт у всех на 30 минут.</div>'
     +'<div class="blist">'+rows+'</div></div>';
 }
 function tgCard(){
@@ -970,10 +983,21 @@ document.addEventListener('click',async e=>{
     return;
   }
   if(a==='save-blitz'){
-    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]');
-    return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:''},'Блиц на '+fmtLong(iso)+' сохранён');
+    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
+    return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:'',p_start:tel?tel.value:'15:00'},'Блиц на '+fmtLong(iso)+' сохранён');
   }
   if(a==='clear-blitz'){if(confirm('Сбросить победителя блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
+  if(a==='launch-blitz'){
+    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
+    const body=el?el.value.trim():'';
+    if(!body)return toast('Сначала впиши задание для этого дня');
+    await rpc('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:body,p_start:tel?tel.value:'15:00'}).catch(()=>null);
+    const r=await rpc('admin_launch_blitz',{p_token:AUTH.token,p_edate:iso}).catch(()=>null);
+    if(r&&r.ok){await loadAll();render();toast('⚡ Блиц запущен — всплыл у всех на 30 минут');}
+    else toast(r?errMsg(r.err):'Не удалось запустить');
+    return;
+  }
+  if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
   if(a==='save-tg'){
     const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim();
     if(!tk||!ch)return toast('Заполни токен бота и ID канала');
@@ -1245,14 +1269,19 @@ function renderBlitzWidget(){
 }
 function updateBlitzTimer(){
   const el=document.getElementById('bzTimer'); if(!el)return;
-  if(S.settings&&S.settings.today_override){el.textContent='тест-режим · окно открыто';return}
-  const y=yektNow(),sec=y.getHours()*3600+y.getMinutes()*60+y.getSeconds();
-  let left=(15*3600+30*60)-sec; if(left<0)left=0;
+  const b=blitzForToday(); if(!b)return;
+  if(b.started_at && Date.now()<new Date(b.started_at).getTime()+30*60000){
+    let left=Math.floor((new Date(b.started_at).getTime()+30*60000-Date.now())/1000); if(left<0)left=0;
+    el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0'); return;
+  }
+  if(S.settings&&S.settings.today_override){el.textContent='тест-режим · окно открыто'; return}
+  const y=yektNow(),sec=y.getHours()*3600+y.getMinutes()*60+y.getSeconds(),st=parseHHMM(b.start_time);
+  let left=(st*60+30*60)-sec; if(left<0)left=0;
   el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
 }
 function maybeShowBlitzPopup(){
   const b=blitzForToday(); if(!b||!blitzActive())return;
-  const key='bzShown_'+b.edate; let shown=false;
+  const key='bzShown_'+b.edate+'_'+(b.started_at||'sched'); let shown=false;
   try{shown=localStorage.getItem(key)==='1'}catch(e){}
   if(shown||document.querySelector('.blitz-pop'))return;
   try{localStorage.setItem(key,'1')}catch(e){}
