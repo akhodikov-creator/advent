@@ -931,11 +931,12 @@ function blitzCard(){
 }
 function tgCard(){
   return '<div class="card"><h3>📣 Телеграм-уведомления</h3>'
-    +'<div class="note" style="margin-bottom:10px">Бот пишет в ваш канал: утренняя отбивка (9:00 ЕКБ), кто получил кота, перекидывания кота, итоги дня (20:30 ЕКБ). Как создать бота и канал — в инструкции TELEGRAM.md. Токен хранится в базе и наружу не виден; здесь его обратно не показать (можно только задать заново).</div>'
+    +'<div class="note" style="margin-bottom:10px"><b>Канал участников</b> — новости: утренняя отбивка (9:00), кот, перекидывания кота, запуск/победитель блица, итоги дня (20:30).<br><b>Канал руководителей</b> — все отчёты сотрудников (ФИО · задание · отчёт + скрин). Один бот пишет в оба — добавь его админом в оба канала. Токен наружу не виден; пустое поле при сохранении не затирает сохранённое.</div>'
     +'<div class="field"><label>Токен бота (от @BotFather)</label><input id="tgToken" placeholder="123456789:AA..." autocomplete="off"></div>'
-    +'<div class="field"><label>ID канала (@имя_канала или -100…)</label><input id="tgChat" placeholder="@my_channel"></div>'
+    +'<div class="field"><label>ID канала участников (@имя_канала или -100…)</label><input id="tgChat" placeholder="@my_channel"></div>'
+    +'<div class="field"><label>ID канала руководителей — все отчёты (необязательно)</label><input id="tgReports" placeholder="@my_reports_channel"></div>'
     +'<button class="btn primary" data-action="save-tg">Сохранить и включить</button> '
-    +'<button class="btn" data-action="test-tg">Отправить тест</button></div>';
+    +'<button class="btn" data-action="test-tg">Отправить тест в оба</button></div>';
 }
 
 /* =====================================================================
@@ -1018,9 +1019,9 @@ document.addEventListener('click',async e=>{
   if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
   if(a==='award-blitz'){return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:t.dataset.mid},'Зачтено! +1 балл');}
   if(a==='save-tg'){
-    const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim();
-    if(!tk||!ch)return toast('Заполни токен бота и ID канала');
-    return act('admin_set_tg',{p_token:AUTH.token,p_bot:tk,p_chat:ch,p_enabled:true},'Телеграм подключён');
+    const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim(), rc=$('#tgReports').value.trim();
+    if(!tk||!ch)return toast('Заполни токен бота и ID канала участников');
+    return act('admin_set_tg',{p_token:AUTH.token,p_bot:tk,p_chat:ch,p_enabled:true,p_reports_chat:rc||null,p_reports_enabled:rc?true:null},'Телеграм подключён');
   }
   if(a==='test-tg'){
     const r=await rpc('tg_test',{p_token:AUTH.token}).catch(()=>null);
