@@ -462,14 +462,18 @@ function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({setting
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
   if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.blitz=c.blitz||[];S.blitz_sub=c.blitz_sub||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
 let reloadT;
-function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(render).catch(()=>{}),400)}
+function isEditing(){const el=document.activeElement; if(!el)return false;
+  const tag=el.tagName;
+  return tag==='TEXTAREA' || tag==='SELECT' || (tag==='INPUT' && !/^(button|submit|checkbox|radio|range|color|file)$/i.test(el.type||'text'));}
+function renderBg(){ if(!isEditing())render(); }   // не перерисовываем, пока пользователь печатает
+function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),400)}
 function subscribeRealtime(){
   sb.channel('advent')
     .on('postgres_changes',{event:'*',schema:'public',table:'entries'},scheduleReload)
     .on('postgres_changes',{event:'*',schema:'public',table:'managers'},scheduleReload)
     .on('postgres_changes',{event:'*',schema:'public',table:'app_settings'},scheduleReload)
     .subscribe();
-  setInterval(()=>{if(!document.hidden)loadAll().then(render).catch(()=>{})},25000); // подстраховка
+  setInterval(()=>{if(!document.hidden)loadAll().then(renderBg).catch(()=>{})},25000); // подстраховка
 }
 
 let toastT;
