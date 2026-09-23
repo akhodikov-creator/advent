@@ -160,6 +160,8 @@ h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600;text-wrap:balance;let
 .reveal .task{font-size:15.5px;line-height:1.5;font-weight:600}
 .reveal.hidden{align-items:center;text-align:center;gap:14px;padding:26px 16px}
 .reveal .lockart{font-size:34px}
+.rankbar{background:var(--brand-soft);color:var(--brand-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;font-size:13.5px;font-weight:700;line-height:1.35}
+.rankbar.top{background:var(--gift-soft);color:var(--gift);border-color:var(--gift)}
 .mini{display:flex;gap:10px}
 .mini .box{flex:1;background:var(--surface-2);border-radius:var(--r-sm);padding:11px 13px}
 .mini .box .n{font-family:var(--mono);font-weight:700;font-size:22px;line-height:1}
@@ -369,12 +371,12 @@ function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMo
 function workdays(){return (S.settings&&S.settings.workdays)||[]}
 function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
 function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini,url:m.avatar_url||''}}
-function avaTag(m,cls){const{col,ini,url}=avatar(m);return '<div class="ava'+(cls?' '+cls:'')+'" style="background:'+col+'">'+(url?'<img src="'+esc(url)+'" alt="">':esc(ini))+'</div>'}
+function avaTag(m,cls){const{col,ini,url}=avatar(m);return '<div class="ava'+(cls?' '+cls:'')+'" style="background:'+col+'">'+(url?'<img loading="lazy" decoding="async" src="'+esc(url)+'" alt="">':esc(ini))+'</div>'}
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
 
-let entByMgr={};
+let entByMgr={}, statsCache={};
 function rebuildIndex(){
-  byMgr={}; entByMgr={};
+  byMgr={}; entByMgr={}; statsCache={};
   S.entries.forEach(e=>{
     const mm=byMgr[e.manager_id]=byMgr[e.manager_id]||{};
     (mm[e.day_index]=mm[e.day_index]||{})[e.kind]=e;
@@ -401,7 +403,8 @@ function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
 function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
 function mgrName(id){const m=S.managers.find(x=>x.id===id);return m?m.full_name:'—'}
 function fmtTime(iso){try{return new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return ''}}
-function statsOf(m){
+function statsOf(m){const ck=m.id+'|'+effToday();return statsCache[ck]||(statsCache[ck]=statsOfRaw(m));}
+function statsOfRaw(m){
   let points=0,gifts=0,missed=0,pending=0,tasksDone=0,tasksElapsed=0;
   const eff=effToday(), arr=entByMgr[m.id]||[];
   arr.forEach(e=>{ if(e.edate>eff)return; tasksElapsed++;
@@ -428,6 +431,22 @@ function teamStandings(){
     if(!map[key])map[key]={team,dir,points:0,gifts:0,n:0,done:0};
     const s=statsOf(m);map[key].points+=s.points;map[key].gifts+=s.gifts;map[key].n++;map[key].done+=s.doneDays;});
   return Object.values(map).sort((a,b)=>b.points-a.points||b.gifts-a.gifts);
+}
+function ballWord(n){n=Math.abs(n)%100;const d=n%10;if(n>10&&n<20)return 'баллов';if(d>1&&d<5)return 'балла';if(d===1)return 'балл';return 'баллов';}
+function rankInfo(m){
+  const all=S.managers.map(x=>({m:x,s:statsOf(x)}))
+    .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
+  const idx=all.findIndex(r=>r.m.id===m.id);
+  if(idx<0)return null;
+  return {rank:idx+1, total:all.length, points:all[idx].s.points, above: idx>0?all[idx-1]:null};
+}
+function rankStrip(m,isOwner){
+  const ri=rankInfo(m); if(!ri)return '';
+  const who=isOwner?'Ты':esc((m.full_name||'').split(' ')[0]);
+  if(ri.rank===1) return '<div class="rankbar top">🥇 '+who+(isOwner?' на 1 месте — держи оборону!':' — 1 место 🔥')+'</div>';
+  const gap=ri.above.s.points - ri.points;
+  const tail=gap>0?('+'+gap+' '+ballWord(gap)):'вровень — вырвись вперёд!';
+  return '<div class="rankbar">📈 '+who+(isOwner?' на ':' — ')+ri.rank+'-м месте из '+ri.total+' · до '+(ri.rank-1)+'-го места '+tail+'</div>';
 }
 function contestInfo(){
   const eff=effToday(),wds=workdays(),idx=wds.indexOf(eff),elapsed=wds.filter(d=>d<=eff).length;
@@ -456,7 +475,7 @@ async function loadAll(){
     if(st.error)throw st.error;
     S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.blitz=(bz&&bz.data)||[]; S.blitz_sub=(bs&&bs.data)||[]; S.entries=en.data||[];
   }
-  rebuildIndex(); loading=false; cacheSave();
+  rebuildIndex(); loading=false; lastLoadAt=Date.now(); cacheSave();
 }
 function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,blitz:S.blitz,blitz_sub:S.blitz_sub,entries:S.entries}))}catch(e){}}
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
@@ -466,7 +485,11 @@ function isEditing(){const el=document.activeElement; if(!el)return false;
   const tag=el.tagName;
   return tag==='TEXTAREA' || tag==='SELECT' || (tag==='INPUT' && !/^(button|submit|checkbox|radio|range|color|file)$/i.test(el.type||'text'));}
 function renderBg(){ if(!isEditing())render(); }   // не перерисовываем, пока пользователь печатает
-function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),400)}
+let lastLoadAt=0;
+function scheduleReload(){if(document.hidden)return;clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),1500)}
+document.addEventListener('visibilitychange',()=>{   // вернулся на вкладку — подтянуть свежее (не чаще раза в 15 сек)
+  if(!document.hidden&&sb&&Date.now()-lastLoadAt>15000)loadAll().then(renderBg).catch(()=>{});
+});
 function subscribeRealtime(){
   sb.channel('advent')
     .on('postgres_changes',{event:'*',schema:'public',table:'entries'},scheduleReload)
@@ -734,6 +757,7 @@ function todayPanel(m,s,info,isOwner){
     }
   }
   return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задачи дня</div></div>'
+    +rankStrip(m,isOwner)
     +card+'<div class="mini"><div class="box"><div class="n">'+s.points+'</div><div class="l">баллов</div></div>'
     +'<div class="box"><div class="n">🎁 '+s.gifts+'</div><div class="l">подарков</div></div>'
     +'<div class="box"><div class="n">'+s.doneDays+'/'+s.elapsed+'</div><div class="l">выполнено</div></div></div></div>';
@@ -791,14 +815,14 @@ function reportForm(e,btnLabel){
     +'<div class="field" style="margin:0"><label>Ссылка на подтверждение — необязательно</label>'
     +'<input id="rl_'+id+'" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
     +'<label class="filelabel">📎 Скриншот<input type="file" class="shotinput" data-eid="'+id+'" accept="image/*"></label>'
-    +'<div id="sp_'+id+'">'+(e.screenshot_url?'<img class="shot-prev" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
+    +'<div id="sp_'+id+'">'+(e.screenshot_url?'<img class="shot-prev" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
     +'<button class="btn good" data-action="submit-report" data-eid="'+id+'" style="margin-top:4px">'+btnLabel+'</button>';
 }
 function reportView(e){
   let h='';
   if(e.report_text)h+='<div class="rt" style="white-space:pre-wrap;font-size:14px;margin-top:6px">'+esc(e.report_text)+'</div>';
   if(e.report_link)h+='<div style="margin-top:6px">'+linkify(e.report_link)+'</div>';
-  if(e.screenshot_url)h+='<img class="shot-prev" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
+  if(e.screenshot_url)h+='<img class="shot-prev" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
   return h||'<div class="note">— отчёт не заполнен —</div>';
 }
 function showDayModal(mgrId,dayIdx){
@@ -832,7 +856,7 @@ function viewReview(){
       +'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
       +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
       +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
-      +(e.screenshot_url?'<img class="rev-thumb" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
+      +(e.screenshot_url?'<img class="rev-thumb" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
       +'<textarea id="revc_'+e.id+'" class="revcomment" rows="2" placeholder="Комментарий менеджеру (необязательно) — увидит в кабинете"></textarea>'
       +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
       +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
