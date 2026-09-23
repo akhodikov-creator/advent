@@ -435,7 +435,8 @@ function teamStandings(){
   filteredManagers().forEach(m=>{const team=m.team||'Без отдела', dir=m.direction||'—', key=dir+'||'+team;
     if(!map[key])map[key]={team,dir,points:0,gifts:0,n:0,done:0};
     const s=statsOf(m);map[key].points+=s.points;map[key].gifts+=s.gifts;map[key].n++;map[key].done+=s.doneDays;});
-  return Object.values(map).sort((a,b)=>b.points-a.points||b.gifts-a.gifts);
+  return Object.values(map).map(r=>Object.assign(r,{avg:r.n?r.points/r.n:0,gavg:r.n?r.gifts/r.n:0}))
+    .sort((a,b)=>b.avg-a.avg||b.gavg-a.gavg||b.n-a.n);   // честно: средний балл на менеджера
 }
 function ballWord(n){n=Math.abs(n)%100;const d=n%10;if(n>10&&n<20)return 'баллов';if(d>1&&d<5)return 'балла';if(d===1)return 'балл';return 'баллов';}
 function rankInfo(m){
@@ -661,9 +662,9 @@ function lbTeam(){
     const medal=['🥇','🥈','🥉'][i];
     return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
       +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
-      +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · сделано задач '+r.done+'</div></div></div>'
+      +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · всего '+r.points+' '+ballWord(r.points)+' · сделано задач '+r.done+'</div></div></div>'
       +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
-      +'<div class="score"><div class="n">'+r.points+'</div><div class="u">баллов</div></div></div>';
+      +'<div class="score"><div class="n">'+r.avg.toFixed(1).replace('.',',')+'</div><div class="u">ср. балл</div></div></div>';
   }).join('')+'</div>';
 }
 function statusPill(e){
@@ -899,7 +900,7 @@ function viewAdmin(){
     +poolsCard()
 
     +'<div class="card"><h3>🐱 Кот в мешке</h3>'
-    +'<div class="note" style="margin-bottom:12px">Каждый день «кот» случайно достаётся 2 участникам (сверх обычных задач, но не в день бонуса). Кнопка раздаёт котов заново на все дни — жми после того, как добавил всех участников и задачи «кота» по направлениям.</div>'
+    +'<div class="note" style="margin-bottom:12px">Каждый участник получает «кота» ровно 1 раз за месяц, в случайный день (не больше 3 котов в день, сверх обычных задач, но не в день бонуса). Кнопка раздаёт котов заново на все дни — жми после того, как добавил всех участников и задачи «кота» по направлениям.</div>'
     +'<button class="btn" data-action="assign-cats">🐱 Раздать «Котов в мешке»</button></div>'
 
     +blitzCard()
@@ -1100,7 +1101,7 @@ document.addEventListener('click',async e=>{
     const ct=$('#poolCat').value.split('\n').map(s=>s.trim()).filter(Boolean);
     return act('admin_set_pools',{p_token:AUTH.token,p_direction:UI.poolDir,p_regular:reg,p_special:sp,p_cat:ct},'Задачи «'+UI.poolDir+'» сохранены');
   }
-  if(a==='assign-cats'){if(confirm('Раздать «Котов в мешке» заново? Это перемешает их случайно по 2 участника в день (текущий прогресс по котам сбросится).'))return act('admin_assign_cats',{p_token:AUTH.token},'Коты в мешке розданы 🐱');return}
+  if(a==='assign-cats'){if(confirm('Раздать «Котов в мешке» заново? Каждому достанется 1 кот за месяц в случайный день, не больше 3 в день (текущий прогресс по котам сбросится).'))return act('admin_assign_cats',{p_token:AUTH.token},'Коты в мешке розданы 🐱');return}
   if(a==='set-today'){return}
   if(a==='save-settings'){
     return act('admin_set_settings',{p_token:AUTH.token,p_title:$('#setTitle').value,p_subtitle:$('#setSub').value,
