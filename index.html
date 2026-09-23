@@ -371,7 +371,7 @@ function parseISO(iso){const[y,m,d]=iso.split('-').map(Number);return new Date(y
 function fmtD(iso){return parseISO(iso).getDate()}
 function fmtWD(iso){return WD[parseISO(iso).getDay()]}
 function fmtLong(iso){const dt=parseISO(iso);return dt.getDate()+' '+MON[dt.getMonth()]}
-function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function todayISO(){const d=yektNow();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}  // «сегодня» по Екатеринбургу, как на сервере
 function workdays(){return (S.settings&&S.settings.workdays)||[]}
 function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
 function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini,url:m.avatar_url||''}}
@@ -513,7 +513,7 @@ async function act(fn,args,okMsg){
   try{const r=await rpc(fn,args);
     if(r&&r.ok===false){toast(errMsg(r.err));return null}
     await loadAll();render(); if(okMsg)toast(okMsg); return r;
-  }catch(e){toast('Ошибка сети, попробуйте ещё раз');console.error(e);return null}
+  }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed/i.test(e.message);toast(net?'Нет связи с базой, попробуйте ещё раз':'Ошибка: '+e.message);return null}
 }
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
@@ -603,7 +603,7 @@ function nav(){
 /* ---- LOGIN ---- */
 function viewLogin(){
   const tab=UI.loginTab||'manager';
-  const opts=S.managers.map(m=>{const meta=[m.direction,m.team].filter(Boolean).join(' · ');return '<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(meta?' · '+esc(meta):'')+'</option>'}).join('');
+  const opts=S.managers.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>{const meta=[m.direction,m.team].filter(Boolean).join(' · ');return '<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(meta?' · '+esc(meta):'')+'</option>'}).join('');
   const mForm='<div class="field"><label>Фамилия и имя</label><select id="loginName"><option value="">— выбери себя —</option>'+opts+'</select></div>'
     +'<div class="field"><label>PIN-код (4 цифры)</label><input id="loginPin" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"></div>'
     +'<button class="btn primary" data-action="do-login-mgr" style="width:100%;justify-content:center">Войти</button>';
@@ -649,8 +649,8 @@ function viewBoard(){
 }
 function lbPeople(){
   return '<div class="card lb">'+standings().map((r,i)=>{
-    const medal=['🥇','🥈','🥉'][i];
-    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+    const lead=(r.s?r.s.points:r.avg)>0, medal=lead?['🥇','🥈','🥉'][i]:null;   // медали только тем, у кого есть баллы
+    return '<div class="lb-row '+(i<3&&lead?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
       +'<div class="who">'+avaTag(r.m)+'<div style="min-width:0">'
       +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
       +'<div class="tm">'+esc([r.m.direction,r.m.team].filter(Boolean).join(' · '))+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
@@ -660,8 +660,8 @@ function lbPeople(){
 }
 function lbTeam(){
   return '<div class="card lb">'+teamStandings().map((r,i)=>{
-    const medal=['🥇','🥈','🥉'][i];
-    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+    const lead=(r.s?r.s.points:r.avg)>0, medal=lead?['🥇','🥈','🥉'][i]:null;   // медали только тем, у кого есть баллы
+    return '<div class="lb-row '+(i<3&&lead?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
       +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
       +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · всего '+r.points+' '+ballWord(r.points)+' · сделано задач '+r.done+'</div></div></div>'
       +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
@@ -692,7 +692,7 @@ function viewCabinet(){
   let picks='';
   if(AUTH.role==='admin'){
     if(!UI.managerId||!S.managers.find(m=>m.id===UI.managerId))UI.managerId=S.managers[0].id;
-    picks='<div class="pickwrap">'+S.managers.map(m=>
+    picks='<div class="pickwrap">'+S.managers.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>
       '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'">'+avaTag(m)+esc(m.full_name)+'</button>').join('')+'</div>';
   }
   const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
