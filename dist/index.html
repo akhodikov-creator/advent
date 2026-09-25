@@ -54,8 +54,9 @@ button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;backgrou
 h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600;text-wrap:balance;letter-spacing:-.01em}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .brandmark{display:flex;align-items:center;gap:12px}
-.leaf{width:48px;height:48px;border-radius:12px;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;box-shadow:var(--sh);overflow:hidden}
-.leaf img{width:100%;height:100%;object-fit:contain;padding:5px;display:block}
+.leaf{width:48px;height:48px;border-radius:12px;background:var(--raise);display:grid;place-items:center;box-shadow:var(--sh);overflow:hidden}
+.leaf img{width:100%;height:100%;object-fit:cover;display:block}
+.ava img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
 .leaf .mono{display:none;width:100%;height:100%;place-items:center;font-family:var(--serif);font-weight:700;font-size:24px;background:linear-gradient(135deg,var(--brand),var(--plum));-webkit-background-clip:text;background-clip:text;color:transparent}
 .tt h1{font-size:clamp(22px,3.4vw,30px);line-height:1.02}
 .tt .sub{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;font-weight:700;margin-top:4px}
@@ -159,6 +160,8 @@ h1,h2,h3{margin:0;font-family:var(--serif);font-weight:600;text-wrap:balance;let
 .reveal .task{font-size:15.5px;line-height:1.5;font-weight:600}
 .reveal.hidden{align-items:center;text-align:center;gap:14px;padding:26px 16px}
 .reveal .lockart{font-size:34px}
+.rankbar{background:var(--brand-soft);color:var(--brand-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;font-size:13.5px;font-weight:700;line-height:1.35}
+.rankbar.top{background:var(--gift-soft);color:var(--gift);border-color:var(--gift)}
 .mini{display:flex;gap:10px}
 .mini .box{flex:1;background:var(--surface-2);border-radius:var(--r-sm);padding:11px 13px}
 .mini .box .n{font-family:var(--mono);font-weight:700;font-size:22px;line-height:1}
@@ -190,6 +193,10 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .rev-body .rt{font-size:14px;line-height:1.5;white-space:pre-wrap;margin:6px 0}
 .rev-body a{color:var(--brand-2);font-weight:600;word-break:break-all}
 .rev-thumb{max-width:120px;max-height:90px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
+.shot-media{max-height:360px;background:#000}
+.shot-audio{width:100%;margin-top:6px}
+.shot-file{display:inline-block;margin-top:4px;font-size:13px;font-weight:700;color:var(--accent,#2563eb)}
 .rev-actions{display:flex;flex-direction:column;gap:6px}
 .login-wrap{max-width:420px;margin:6vh auto 0}
 .login-card{padding:26px}
@@ -218,6 +225,111 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .rv-confetti{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:3}
 .rv-confetti i{position:absolute;left:50%;top:34%;width:9px;height:9px;border-radius:2px;opacity:0;animation:conf .95s ease-out forwards}
 @keyframes conf{0%{opacity:1;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(240deg) scale(1)}}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.cab-stack{display:flex;flex-direction:column;gap:16px}
+.dirfilter{display:flex;gap:6px;flex-wrap:wrap;margin:0 2px 14px}
+.dchip{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font-weight:700;font-size:12.5px;color:var(--muted);box-shadow:var(--sh)}
+.dchip[aria-current="true"]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-2)}
+.mrow select{width:auto;padding:8px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:inherit;font-size:13.5px}
+.avaup{cursor:pointer;position:relative;flex:none}
+.avaup input{display:none}
+.avaup::after{content:"✎";position:absolute;right:-3px;bottom:-3px;background:var(--brand);color:#fff;width:15px;height:15px;border-radius:50%;font-size:9px;display:grid;place-items:center;box-shadow:var(--sh)}
+.pill.cat{background:#B3261E;color:#fff;text-transform:uppercase;letter-spacing:.03em;box-shadow:0 0 0 2px rgba(179,38,30,.22)}
+.cell.catday::before{content:"";position:absolute;top:0;right:0;border-width:0 24px 24px 0;border-style:solid;border-color:transparent #D93A2F transparent transparent}
+.cell.catday::after{content:"🐱";position:absolute;top:1px;right:2px;font-size:11px;line-height:1;z-index:2}
+.taskblock.cat{border:2px solid #D93A2F;background:linear-gradient(180deg,rgba(217,58,47,.16),var(--surface));animation:catpulse 1.6s ease-in-out infinite}
+@keyframes catpulse{0%,100%{box-shadow:0 0 0 0 rgba(217,58,47,.4)}50%{box-shadow:0 0 0 6px rgba(217,58,47,0)}}
+.catwarn{background:#B3261E;color:#fff;border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:700;line-height:1.45}
+.catwarn b{text-decoration:underline}
+.catgive{border:1.5px solid #D93A2F!important;color:#fff!important;background:#B3261E!important;font-weight:800!important;box-shadow:var(--sh)!important}
+.catgive:hover{background:#9E1F18!important}
+.reassign-list{display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto;margin-top:10px}
+.reassign-list button{display:flex;align-items:center;gap:9px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);font-weight:600;font-size:13.5px;text-align:left}
+.reassign-list button:hover{border-color:var(--brand);background:var(--brand-soft)}
+.taskstack{display:flex;flex-direction:column;gap:12px}
+.taskblock{border:1px solid var(--line);border-radius:var(--r-sm);padding:13px 14px;background:var(--surface-2);display:flex;flex-direction:column;gap:9px}
+.taskblock.spec{border-color:var(--gift);background:var(--gift-soft)}
+.taskblock .task{font-size:15px;line-height:1.45;font-weight:600}
+.commentbox{background:var(--plum-soft);color:var(--plum);border-radius:8px;padding:9px 11px;font-size:13px;line-height:1.45}
+.deadline{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:9px 11px;font-size:12.5px;font-weight:600;line-height:1.4}
+.day-modal{text-align:left;max-width:480px;max-height:86vh;overflow:auto}
+.day-modal::before{content:none!important}
+.revcomment{margin-top:8px;width:100%;font-size:13px}
+.rv-boom{background:rgba(6,11,22,.74)}
+.cat-boom{background:rgba(28,5,5,.82)}
+.reveal-modal.cat{border-color:#D93A2F;box-shadow:0 0 0 3px rgba(217,58,47,.35),var(--sh-lg)}
+.reveal-modal.rv-big.cat .rv-orb{background:radial-gradient(120% 120% at 30% 20%,#E85141,#7A130C);box-shadow:0 14px 34px -8px rgba(217,58,47,.6)}
+.reveal-modal.cat .rv-hype{background:linear-gradient(90deg,#E85141,#B3261E);-webkit-background-clip:text;background-clip:text;color:transparent}
+.reveal-modal.rv-big.cat{animation:mpop .3s cubic-bezier(.2,.8,.3,1.1), rvshake .5s ease-in-out .12s 2}
+.reveal-modal.rv-big{max-width:460px;animation:mpop .3s cubic-bezier(.2,.8,.3,1.1), rvshake .55s ease-in-out .12s}
+@keyframes rvshake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-7px) rotate(-1.2deg)}30%{transform:translateX(7px) rotate(1.2deg)}45%{transform:translateX(-5px)}60%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.rv-big .rv-orb{width:112px;height:112px;font-size:42px}
+.rv-hype{font-family:var(--sans);font-weight:800;font-size:27px;line-height:1.05;letter-spacing:.01em;text-transform:uppercase;background:linear-gradient(90deg,var(--brand),var(--plum));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:4px;animation:hypein .45s cubic-bezier(.2,.9,.3,1.5) both}
+.reveal-modal.spec .rv-hype{background:linear-gradient(90deg,var(--gift),#B7791F);-webkit-background-clip:text;background-clip:text}
+@keyframes hypein{0%{transform:scale(.3) rotate(-8deg);opacity:0}70%{transform:scale(1.18) rotate(2deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.rv-go{justify-content:center;font-size:15px;font-weight:800;padding:11px 20px;width:100%}
+.rv-emojis{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+.rv-emojis i{position:absolute;top:-12%;font-style:normal;animation:efall linear forwards}
+@keyframes efall{0%{opacity:0;transform:translateY(-30px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(420px) rotate(var(--r))}}
+.mystery{border:2px dashed var(--brand);border-radius:var(--r-sm);padding:20px 16px;text-align:center;background:var(--brand-soft);display:flex;flex-direction:column;gap:8px;align-items:center}
+.mystery-q{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--plum));color:#fff;font-family:var(--serif);font-weight:700;font-size:30px;display:grid;place-items:center;box-shadow:var(--sh);animation:qbob 1.6s ease-in-out infinite}
+@keyframes qbob{0%,100%{transform:translateY(0) rotate(-5deg)}50%{transform:translateY(-6px) rotate(5deg)}}
+.mystery .mtitle{font-family:var(--serif);font-size:17px;font-weight:600;color:var(--ink)}
+.mbtn{width:100%;justify-content:center;margin-top:2px}
+.rv-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:6;animation:rvflash .55s ease-out}
+@keyframes rvflash{0%{opacity:.9}100%{opacity:0}}
+.catrv{position:fixed;inset:0;z-index:90;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,#2E86FF,#0B2E66 65%,#05132e);animation:catshake .16s linear infinite}
+@keyframes catshake{0%{transform:translate(0,0)}20%{transform:translate(-5px,4px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,-4px)}80%{transform:translate(4px,4px)}100%{transform:translate(0,0)}}
+.catrv-ripple{position:absolute;inset:-25%;background:repeating-radial-gradient(circle at 50% 45%,rgba(255,255,255,.08) 0,rgba(255,255,255,.08) 2px,transparent 3px,transparent 12px);mix-blend-mode:overlay;animation:catripple 2.2s linear infinite;pointer-events:none}
+@keyframes catripple{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+.catrv-scan{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0,rgba(255,255,255,.06) 1px,transparent 2px,transparent 4px);pointer-events:none;animation:catscan .18s steps(2) infinite}
+@keyframes catscan{to{transform:translateY(4px)}}
+.catrv-cats{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.catrv-cats i{position:absolute;bottom:-12%;font-style:normal;animation:catfloat linear infinite;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+@keyframes catfloat{0%{transform:translateY(0) rotate(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-120vh) rotate(var(--r));opacity:0}}
+.catrv-box{position:relative;z-index:2;background:rgba(9,26,60,.74);border:2px solid #7FB3FF;border-radius:22px;box-shadow:0 0 70px rgba(70,150,255,.65);max-width:460px;width:calc(100% - 40px);padding:24px 22px;text-align:center;color:#fff}
+.catrv-title{font-family:var(--sans);font-weight:800;font-size:30px;text-transform:uppercase;letter-spacing:.02em;color:#fff;text-shadow:0 0 16px rgba(150,200,255,.95);animation:cattitle .35s ease-in-out infinite alternate}
+@keyframes cattitle{from{transform:scale(1) rotate(-1.5deg)}to{transform:scale(1.06) rotate(1.5deg)}}
+.catrv-emoji{font-size:66px;margin:4px 0;animation:catspin 1.1s ease-in-out infinite}
+@keyframes catspin{0%,100%{transform:rotate(-12deg) scale(1)}50%{transform:rotate(12deg) scale(1.15)}}
+.rv-hype.long{font-size:20px;line-height:1.15;text-wrap:balance}
+.catrv-name{font-size:18px;font-weight:800;color:#CFE3FF;margin-top:4px;text-wrap:balance}
+.ttitle{font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--brand)}
+.titlehint{background:var(--brand-soft);color:var(--brand-2);border-radius:8px;padding:9px 11px;font-size:13px;margin-bottom:10px}
+.catrv-task{font-size:17px;line-height:1.4;font-weight:600;margin:6px 0}
+.catrv-warn{background:#B3261E;border-radius:8px;padding:9px 11px;font-weight:700;font-size:13px;margin-top:8px}
+.catrv-btn{margin-top:14px;width:100%;justify-content:center;font-weight:800;font-size:15px;padding:12px}
+.catrv-btn:disabled{opacity:.75;cursor:not-allowed}
+.rv-fw{position:fixed;inset:0;pointer-events:none;z-index:1}
+.reveal-ov .reveal-modal{position:relative;z-index:3}
+#blitzWidget{position:fixed;top:72px;right:14px;z-index:65;width:290px;max-width:calc(100vw - 28px);background:var(--surface);border:2px solid #E4BE5C;border-radius:14px;box-shadow:0 0 0 3px rgba(240,180,41,.25),var(--sh-lg);padding:14px 15px;display:flex;flex-direction:column;gap:8px;animation:bwpop .35s cubic-bezier(.2,.8,.3,1.1)}
+@keyframes bwpop{from{transform:translateY(-12px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+.bw-head{font-weight:800;font-size:14px;color:#B07A0E;letter-spacing:.03em}
+.bw-task{font-size:14px;line-height:1.4;font-weight:600;color:var(--ink)}
+.bw-winner{background:var(--good-soft);color:var(--good);border-radius:8px;padding:7px 9px;font-size:12.5px;font-weight:700}
+.bw-hint{font-size:12px;color:var(--muted)}
+.bw-timer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
+#blitzWidget textarea{font-size:13px}
+.bw-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bw-x{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;white-space:nowrap}
+.bw-x:hover{background:var(--surface-2)}
+#blitzWidget.min{width:auto;padding:6px 8px}
+#blitzWidget.min .bw-x{color:#B07A0E;font-size:13px;display:flex;gap:6px;align-items:center}
+#blitzWidget.min .bw-timer{font-size:12px}
+/* на телефоне — внизу экрана, чтобы не закрывать шапку с кнопками входа/выхода */
+@media(max-width:720px){#blitzWidget{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:55vh;overflow:auto}#blitzWidget.min{left:auto}}
+.blist{display:flex;flex-direction:column;gap:8px}
+.brow{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center}
+.brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
+.brow input[type="time"]{width:auto}
+.brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bsublist{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line)}
+.bsub{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface-2);border-radius:8px;padding:8px 10px}
+.bsub.win{background:var(--good-soft)}
+.bsub-n{font-family:var(--mono);font-weight:700;color:var(--muted)}
+.bsub-body .rt{font-size:13px;white-space:pre-wrap;margin-top:2px;line-height:1.4}
+@media(max-width:640px){.brow{grid-template-columns:1fr}.bsub{grid-template-columns:auto 1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -253,11 +365,14 @@ const UI = load('advUI', {view:'board', lbTab:'people', managerId:null});
 let AUTH = load('advAuth', {role:'guest'});
 function load(k,def){try{return JSON.parse(localStorage.getItem(k))||def}catch(e){return def}}
 function persist(){try{localStorage.setItem('advUI',JSON.stringify(UI));localStorage.setItem('advAuth',JSON.stringify(AUTH))}catch(e){}}
+const DIRS=['СРБ','ПМ','ЦК','ТЭ'];
+if(!UI.dirFilter)UI.dirFilter='all';
+if(!UI.poolDir)UI.poolDir='СРБ';
 
 /* ---------- данные с сервера ---------- */
-let S = {settings:null, managers:[], entries:[], reg:[], sp:[]};
+let S = {settings:null, managers:[], entries:[], reg:[], sp:[], cat:[], blitz:[], blitz_sub:[]};
 let byMgr = {};   // managerId -> {dayIndex -> entry}
-let loading=true, pendingShot=null;
+let loading=true, pendingShots={}, pendingPrev={}, uploading=false;
 
 /* ---------- helpers ---------- */
 const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
@@ -267,38 +382,96 @@ function parseISO(iso){const[y,m,d]=iso.split('-').map(Number);return new Date(y
 function fmtD(iso){return parseISO(iso).getDate()}
 function fmtWD(iso){return WD[parseISO(iso).getDay()]}
 function fmtLong(iso){const dt=parseISO(iso);return dt.getDate()+' '+MON[dt.getMonth()]}
-function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function todayISO(){const d=yektNow();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}  // «сегодня» по Екатеринбургу, как на сервере
 function workdays(){return (S.settings&&S.settings.workdays)||[]}
 function effToday(){return (S.settings&&S.settings.today_override)||todayISO()}
-function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini}}
+function avatar(m){const col=AVCOL[(m.seat||0)%AVCOL.length];const ini=(m.full_name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();return{col,ini,url:m.avatar_url||''}}
+function avaTag(m,cls){const{col,ini,url}=avatar(m);return '<div class="ava'+(cls?' '+cls:'')+'" style="background:'+col+'">'+(url?'<img loading="lazy" decoding="async" src="'+esc(url)+'" alt="">':esc(ini))+'</div>'}
 function linkify(t){return esc(t).replace(/(https?:\/\/[^\s]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
 
-function entryOf(mgrId, dayIdx){return (byMgr[mgrId]&&byMgr[mgrId][dayIdx])||null}
+let entByMgr={}, statsCache={};
 function rebuildIndex(){
-  byMgr={};
-  S.entries.forEach(e=>{(byMgr[e.manager_id]=byMgr[e.manager_id]||{})[e.day_index]=e});
-}
-function statsOf(m){
-  let points=0,gifts=0,missed=0,doneDays=0,elapsed=0,pending=0;
-  const eff=effToday();
-  workdays().forEach((iso,i)=>{
-    if(iso>eff)return; elapsed++;
-    const e=entryOf(m.id,i);
-    if(e&&e.review==='approved'){doneDays++; if(e.kind==='special')gifts++; else points++;}
-    else if(e&&e.review==='pending')pending++;
-    if(iso<eff && !(e&&e.review==='approved'))missed++;
+  byMgr={}; entByMgr={}; statsCache={};
+  S.entries.forEach(e=>{
+    const mm=byMgr[e.manager_id]=byMgr[e.manager_id]||{};
+    (mm[e.day_index]=mm[e.day_index]||{})[e.kind]=e;
+    (entByMgr[e.manager_id]=entByMgr[e.manager_id]||[]).push(e);
   });
-  return{points,gifts,missed,doneDays,elapsed,pending};
 }
+function dayEntries(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];if(!d)return [];const a=[];if(d.regular)a.push(d.regular);if(d.special)a.push(d.special);if(d.cat)a.push(d.cat);return a}
+function entryOf(mgrId,dayIdx){const d=byMgr[mgrId]&&byMgr[mgrId][dayIdx];return d?(d.regular||d.special||null):null}
+function yektNow(){const now=new Date();return new Date(now.getTime()+now.getTimezoneOffset()*60000+5*3600000)}
+function pastDeadline(){
+  if(S.settings&&S.settings.today_override)return false;   // тест-режим — без дедлайна
+  return yektNow().getHours()>=20;   // после 20:00 по Екатеринбургу
+}
+function blitzForToday(){const eff=effToday();return (S.blitz||[]).find(b=>b.edate===eff && b.body && b.body.trim())}
+function parseHHMM(t){const p=((t||'15:00')+'').split(':');return (+p[0])*60+(+p[1]||0)}
+function blitzWindowNow(){
+  const b=blitzForToday(); if(!b)return false;
+  if(b.started_at){const t=new Date(b.started_at).getTime(); if(Date.now()>=t && Date.now()<t+30*60000)return true;} // ручной запуск
+  if(S.settings&&S.settings.today_override)return true;    // тест-режим
+  const y=yektNow(),m=y.getHours()*60+y.getMinutes(),st=parseHHMM(b.start_time);
+  return m>=st && m<st+30;                                 // расписание start_time..+30мин ЕКБ
+}
+function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
+function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
+function splitTitle(str){str=str||'';const i=str.indexOf('|');return i<0?{title:'',text:str.trim()}:{title:str.slice(0,i).trim(),text:str.slice(i+1).trim()}}
+function mgrName(id){const m=S.managers.find(x=>x.id===id);return m?m.full_name:'—'}
+function taskTitle(e){if(!e)return '';const pool=e.kind==='special'?S.sp:e.kind==='cat'?S.cat:S.reg;const m=S.managers.find(x=>x.id===e.manager_id),dir=m?(m.direction||''):'';const hit=(pool||[]).find(x=>x.body===e.task_text&&(x.direction||'')===dir)||(pool||[]).find(x=>x.body===e.task_text);return hit&&hit.title?hit.title:''}
+function fmtTime(iso){try{return new Date(iso).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}catch(e){return ''}}
+function statsOf(m){const ck=m.id+'|'+effToday();return statsCache[ck]||(statsCache[ck]=statsOfRaw(m));}
+function statsOfRaw(m){
+  let points=0,gifts=0,missed=0,pending=0,tasksDone=0,tasksElapsed=0;
+  const eff=effToday(), arr=entByMgr[m.id]||[];
+  arr.forEach(e=>{ if(e.edate>eff)return; tasksElapsed++;
+    const done=e.review==='approved', pend=e.review==='pending', past=e.edate<eff;
+    if(e.kind==='cat'){
+      if(done){points+=2;tasksDone++;} else if(pend){pending++;} else if(past){points-=2;missed++;}
+    }else if(e.kind==='special'){
+      if(done){gifts++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
+    }else{
+      if(done){points++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
+    }
+  });
+  const bw=blitzWins(m.id); points+=bw; tasksDone+=bw;     // блиц-победы: +1 балл
+  return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
+}
+function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
 function standings(){
-  return S.managers.map(m=>({m,s:statsOf(m)}))
+  return filteredManagers().map(m=>({m,s:statsOf(m)}))
     .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
 }
 function teamStandings(){
   const map={};
-  S.managers.forEach(m=>{const t=m.team||'—';(map[t]=map[t]||{team:t,points:0,gifts:0,n:0,done:0});
-    const s=statsOf(m);map[t].points+=s.points;map[t].gifts+=s.gifts;map[t].n++;map[t].done+=s.doneDays;});
-  return Object.values(map).sort((a,b)=>b.points-a.points||b.gifts-a.gifts);
+  filteredManagers().forEach(m=>{const team=m.team||'Без отдела', dir=m.direction||'—', key=dir+'||'+team;
+    if(!map[key])map[key]={team,dir,points:0,gifts:0,n:0,done:0};
+    const s=statsOf(m);map[key].points+=s.points;map[key].gifts+=s.gifts;map[key].n++;map[key].done+=s.doneDays;});
+  return Object.values(map).map(r=>Object.assign(r,{avg:r.n?r.points/r.n:0,gavg:r.n?r.gifts/r.n:0}))
+    .sort((a,b)=>b.avg-a.avg||b.gavg-a.gavg||b.n-a.n);   // честно: средний балл на менеджера
+}
+function ballWord(n){n=Math.abs(n)%100;const d=n%10;if(n>10&&n<20)return 'баллов';if(d>1&&d<5)return 'балла';if(d===1)return 'балл';return 'баллов';}
+function rankInfo(m){
+  const all=S.managers.map(x=>({m:x,s:statsOf(x)}))
+    .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
+  const idx=all.findIndex(r=>r.m.id===m.id);
+  if(idx<0)return null;
+  const pl=places(all,mkey), rank=pl[idx], tied=all.filter(r=>mkey(r)===mkey(all[idx])).length-1;
+  return {rank, total:all.length, points:all[idx].s.points, tied, above: rank>1?all[rank-2]:null, aboveRank: rank>1?pl[rank-2]:0};
+}
+// Равные баллы (и бонусы) — общее место: 1, 2, 2, 4…
+const mkey=r=>r.s.points+'/'+r.s.gifts;
+function places(arr,key){const p=[];arr.forEach((r,i)=>p.push(i>0&&key(r)===key(arr[i-1])?p[i-1]:i+1));return p}
+function rankStrip(m,isOwner){
+  const ri=rankInfo(m); if(!ri)return '';
+  const who=isOwner?'Ты':esc((m.full_name||'').split(' ')[0]);
+  if(ri.rank===1&&ri.points<=0)   // у лидеров 0 баллов — никакого «1 места» ещё нет
+    return '<div class="rankbar">🚀 '+(isOwner?'Лидеров пока нет — первый балл выведет тебя на 1 место!':who+' — баллов пока нет, лидеров тоже')+'</div>';
+  const withN=ri.tied?' (вместе с ещё '+ri.tied+')':'';
+  if(ri.rank===1) return '<div class="rankbar top">🥇 '+who+(isOwner?' на 1 месте'+withN+' — держи оборону!':' — 1 место'+withN+' 🔥')+'</div>';
+  const gap=ri.above.s.points - ri.points;
+  const tail=gap>0?('+'+gap+' '+ballWord(gap)):'вровень по баллам — обгони по бонусам!';
+  return '<div class="rankbar">📈 '+who+(isOwner?' на ':' — на ')+ri.rank+'-м месте из '+ri.total+withN+' · до '+ri.aboveRank+'-го места '+tail+'</div>';
 }
 function contestInfo(){
   const eff=effToday(),wds=workdays(),idx=wds.indexOf(eff),elapsed=wds.filter(d=>d<=eff).length;
@@ -312,32 +485,44 @@ async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error)thr
 async function loadAll(){
   try{
     const data=await rpc('bootstrap');           // один запрос вместо шести
-    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.entries=data.entries||[];
+    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
   }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
-    const [st,mg,rg,sp,en]=await Promise.all([
+    const [st,mg,rg,sp,ct,bz,bs,en]=await Promise.all([
       sb.from('app_settings').select('*').eq('id',1).single(),
-      sb.from('managers').select('id,full_name,team,seat,active').eq('active',true).order('seat'),
+      sb.from('managers').select('id,full_name,team,seat,active,direction,avatar_url').eq('active',true).order('seat'),
       sb.from('pool_regular').select('*').order('ord'),
       sb.from('pool_special').select('*').order('ord'),
+      sb.from('pool_cat').select('*').order('ord'),
+      sb.from('blitz').select('*'),
+      sb.from('blitz_sub').select('*'),
       sb.from('entries').select('*')
     ]);
     if(st.error)throw st.error;
-    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.entries=en.data||[];
+    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.blitz=(bz&&bz.data)||[]; S.blitz_sub=(bs&&bs.data)||[]; S.entries=en.data||[];
   }
-  rebuildIndex(); loading=false; cacheSave();
+  rebuildIndex(); loading=false; lastLoadAt=Date.now(); cacheSave();
 }
-function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,entries:S.entries}))}catch(e){}}
+function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,blitz:S.blitz,blitz_sub:S.blitz_sub,entries:S.entries}))}catch(e){}}
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
-  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
+  if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.blitz=c.blitz||[];S.blitz_sub=c.blitz_sub||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
 let reloadT;
-function scheduleReload(){clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(render).catch(()=>{}),400)}
+function isEditing(){if(uploading)return true;   // идёт загрузка файла — не перерисовываем
+  const el=document.activeElement; if(!el)return false;
+  const tag=el.tagName;
+  return tag==='TEXTAREA' || tag==='SELECT' || (tag==='INPUT' && !/^(button|submit|checkbox|radio|range|color|file)$/i.test(el.type||'text'));}
+function renderBg(){ if(!isEditing())render(); }   // не перерисовываем, пока пользователь печатает
+let lastLoadAt=0;
+function scheduleReload(){if(document.hidden)return;clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),1500)}
+document.addEventListener('visibilitychange',()=>{   // вернулся на вкладку — подтянуть свежее (не чаще раза в 15 сек)
+  if(!document.hidden&&sb&&Date.now()-lastLoadAt>15000)loadAll().then(renderBg).catch(()=>{});
+});
 function subscribeRealtime(){
   sb.channel('advent')
     .on('postgres_changes',{event:'*',schema:'public',table:'entries'},scheduleReload)
     .on('postgres_changes',{event:'*',schema:'public',table:'managers'},scheduleReload)
     .on('postgres_changes',{event:'*',schema:'public',table:'app_settings'},scheduleReload)
     .subscribe();
-  setInterval(()=>{if(!document.hidden)loadAll().then(render).catch(()=>{})},25000); // подстраховка
+  setInterval(()=>{if(!document.hidden)loadAll().then(renderBg).catch(()=>{})},25000); // подстраховка
 }
 
 let toastT;
@@ -347,11 +532,19 @@ async function act(fn,args,okMsg){
   try{const r=await rpc(fn,args);
     if(r&&r.ok===false){toast(errMsg(r.err));return null}
     await loadAll();render(); if(okMsg)toast(okMsg); return r;
-  }catch(e){toast('Ошибка сети, попробуйте ещё раз');console.error(e);return null}
+  }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed/i.test(e.message);toast(net?'Нет связи с базой, попробуйте ещё раз':'Ошибка: '+e.message);return null}
 }
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
-  empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно'})[code]||'Не получилось'}
+  empty:'Заполните отчёт: текст, ссылку или файл',bad:'Некорректно',
+  deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя',
+  no_reassign:'Переназначить кота можно только один раз',
+  bad_target:'Этому участнику нельзя передать — у него уже есть бонус или кот в этот день',
+  self:'Нельзя передать самому себе',
+  no_blitz:'Блиц-задание сейчас не активно',
+  blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)',
+  reassign_expired:'Передать кота можно только 30 минут после открытия',
+  no_body:'Сначала впиши задание для этого дня'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -364,10 +557,30 @@ function compress(file){
       c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
 }
+/* Вложение к отчёту: картинки сжимаем, остальное (видео, аудио, документы) грузим как есть, до 50 МБ */
+const MAX_UPLOAD=50*1024*1024;
+const UPLOAD_ACCEPT='image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
+function fileKind(u){const x=String(u||'').split('?')[0].toLowerCase();
+  if(/\.(jpe?g|png|gif|webp|bmp)$/.test(x))return 'img';
+  if(/\.(mp4|mov|webm|m4v|3gp)$/.test(x))return 'video';
+  if(/\.(mp3|m4a|wav|ogg|oga|aac|amr|opus)$/.test(x))return 'audio';
+  return 'file';}
+function fmtMB(n){return (n/1048576).toFixed(n<10485760?1:0).replace('.',',')+' МБ'}
+function mediaHTML(url,cls,zoom){const k=fileKind(url),u=esc(url),ext=esc((String(url).split('?')[0].split('.').pop()||'').toUpperCase());
+  const open='<a class="shot-file" href="'+u+'" target="_blank" rel="noopener">';
+  if(k==='img')return '<img class="'+cls+'" loading="lazy" decoding="async" src="'+u+'"'+(zoom?' data-action="zoom" style="cursor:zoom-in"':'')+'>';
+  if(k==='video')return '<video class="'+cls+' shot-media" src="'+u+'" controls preload="metadata" playsinline></video><div>'+open+'⬇️ Скачать видео ('+ext+')</a></div>';
+  if(k==='audio')return '<audio class="shot-audio" src="'+u+'" controls preload="none"></audio><div>'+open+'⬇️ Скачать запись ('+ext+')</a></div>';
+  return open+'📄 Открыть файл ('+ext+')</a>';}
 async function uploadShot(entryId,file){
-  const blob=await compress(file);
-  const path=entryId+'/'+Date.now()+'.jpg';
-  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:'image/jpeg',upsert:true});
+  let blob=file, type=file.type||'application/octet-stream', ext='';
+  if(/^image\/(jpeg|png|webp|bmp)$/.test(file.type)){   // скриншоты/фото — сжимаем, как раньше
+    try{blob=await compress(file);type='image/jpeg';ext='jpg'}catch(e){blob=file}
+  }
+  if(!ext)ext=((file.name||'').split('.').pop()||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+  if(blob.size>MAX_UPLOAD)throw new Error('too_big');
+  const path=entryId+'/'+Date.now()+'.'+ext;
+  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true});
   if(error)throw error;
   return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
 }
@@ -390,7 +603,10 @@ function render(){
   else if(UI.view==='admin')body=viewAdmin();
   root.innerHTML=header()+nav()+body+
     '<div class="foot-note">Адвент-календарь продаж · открывай ячейку каждое утро · рейтинг обновляется онлайн</div>';
-  const shot=$('#shotInput'); if(shot)shot.addEventListener('change',onShotPick);
+  root.querySelectorAll('.shotinput').forEach(inp=>inp.addEventListener('change',onShotPick));
+  root.querySelectorAll('.avainput').forEach(inp=>inp.addEventListener('change',onAvatarPick));
+  if(UI.view==='login')wireLogin();
+  renderBlitzWidget();
   const lg=root.querySelector('.leaf img');
   if(lg){const fb=()=>{lg.style.display='none';const m=root.querySelector('.leaf .mono');if(m)m.style.display='grid'};
     lg.onerror=fb; if(lg.complete&&lg.naturalWidth===0)fb();}
@@ -426,7 +642,7 @@ function nav(){
 /* ---- LOGIN ---- */
 function viewLogin(){
   const tab=UI.loginTab||'manager';
-  const opts=S.managers.map(m=>'<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(m.team?' · '+esc(m.team):'')+'</option>').join('');
+  const opts=S.managers.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>{const meta=[m.direction,m.team].filter(Boolean).join(' · ');return '<option value="'+esc(m.full_name)+'">'+esc(m.full_name)+(meta?' · '+esc(meta):'')+'</option>'}).join('');
   const mForm='<div class="field"><label>Фамилия и имя</label><select id="loginName"><option value="">— выбери себя —</option>'+opts+'</select></div>'
     +'<div class="field"><label>PIN-код (4 цифры)</label><input id="loginPin" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off"></div>'
     +'<button class="btn primary" data-action="do-login-mgr" style="width:100%;justify-content:center">Войти</button>';
@@ -442,38 +658,55 @@ function viewLogin(){
 }
 
 /* ---- BOARD ---- */
-function viewBoard(){
-  const info=contestInfo();
-  let out='<div class="section-h"><h2>Общий рейтинг</h2><div class="seg">'
+function dirChips(){
+  const chip=(v,l)=>'<button class="dchip" data-action="dir" data-dir="'+v+'" aria-current="'+(UI.dirFilter===v)+'">'+l+'</button>';
+  return '<div class="dirfilter">'+chip('all','Все')+DIRS.map(d=>chip(d,d)).join('')+'</div>';
+}
+function leaderboardBlock(){
+  if(!S.managers.length)return '<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';
+  return '<div class="section-h"><h2>Рейтинг</h2><div class="seg">'
     +'<button data-action="lbtab" data-tab="people" aria-current="'+(UI.lbTab==='people')+'">Менеджеры</button>'
-    +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Команды</button></div></div>';
-  if(!S.managers.length){out+='<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';return out}
-  out+= UI.lbTab==='people'?lbPeople():lbTeam();
-  out+='<div class="section-h"><h2>Задачи на сегодня</h2><span class="hint">'+(info.phase==='live'&&info.idx>=0?fmtLong(effToday())+', '+fmtWD(effToday()):'—')+'</span></div>';
+    +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Отделы</button></div></div>'
+    +dirChips()
+    +(UI.lbTab==='people'?lbPeople():lbTeam());
+}
+function viewBoard(){
+  const me=(AUTH.role==='manager')?S.managers.find(x=>x.id===AUTH.manager_id):null;
+  const lb=leaderboardBlock();
+  if(me){  // вошёл менеджер — слева рейтинг, справа свой календарь
+    return '<div class="split"><div class="split-l">'+lb+'</div>'
+      +'<div class="split-r"><div class="cab-stack">'+cabinetInner(me,true)+'</div></div></div>';
+  }
+  // гость / админ — рейтинг во всю ширину + задачи на сегодня
+  if(!S.managers.length)return lb;
+  const info=contestInfo();
+  let out=lb+'<div class="section-h"><h2>Задачи на сегодня</h2><span class="hint">'+(info.phase==='live'&&info.idx>=0?fmtLong(effToday())+', '+fmtWD(effToday()):'—')+'</span></div>';
   if(info.phase!=='live'||info.idx<0){
     out+='<div class="card empty"><div class="big">Сегодня задач нет</div><div>'+(info.phase==='before'?'Конкурс ещё не стартовал.':info.phase==='after'?'Конкурс завершён.':'Сегодня выходной день.')+'</div></div>';
-  }else{out+='<div class="grid">'+S.managers.map(m=>todayCard(m,info.idx)).join('')+'</div>'}
+  }else{out+='<div class="grid">'+filteredManagers().map(m=>todayCard(m,info.idx)).join('')+'</div>'}
   return out;
 }
 function lbPeople(){
-  return '<div class="card lb">'+standings().map((r,i)=>{
-    const{col,ini}=avatar(r.m),medal=['🥇','🥈','🥉'][i];
-    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
-      +'<div class="who"><div class="ava" style="background:'+col+'">'+ini+'</div><div style="min-width:0">'
+  const rows=standings(), pl=places(rows,mkey);
+  return '<div class="card lb">'+rows.map((r,i)=>{
+    const lead=r.s.points>0, medal=lead?['🥇','🥈','🥉'][pl[i]-1]:null;   // медали только тем, у кого есть баллы; при равенстве — общее место
+    return '<div class="lb-row '+(pl[i]<=3&&lead?'top':'')+'"><div class="rank">'+(medal||pl[i])+'</div>'
+      +'<div class="who">'+avaTag(r.m)+'<div style="min-width:0">'
       +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
-      +'<div class="tm">'+esc(r.m.team||'')+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
+      +'<div class="tm">'+esc([r.m.direction,r.m.team].filter(Boolean).join(' · '))+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
       +'<div class="gifts">'+(r.s.gifts?('🎁 '+r.s.gifts):'')+'</div>'
       +'<div class="score"><div class="n">'+r.s.points+'</div><div class="u">баллов</div></div></div>';
   }).join('')+'</div>';
 }
 function lbTeam(){
-  return '<div class="card lb">'+teamStandings().map((r,i)=>{
-    const medal=['🥇','🥈','🥉'][i];
-    return '<div class="lb-row '+(i<3?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+  const rows=teamStandings(), pl=places(rows,r=>r.avg.toFixed(3)+'/'+r.gavg.toFixed(3));
+  return '<div class="card lb">'+rows.map((r,i)=>{
+    const lead=r.avg>0, medal=lead?['🥇','🥈','🥉'][pl[i]-1]:null;   // медали только тем, у кого есть баллы
+    return '<div class="lb-row '+(pl[i]<=3&&lead?'top':'')+'"><div class="rank">'+(medal||pl[i])+'</div>'
       +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
-      +'<div><div class="nm">Команда «'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · сделано задач '+r.done+'</div></div></div>'
+      +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · всего '+r.points+' '+ballWord(r.points)+' · сделано задач '+r.done+'</div></div></div>'
       +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
-      +'<div class="score"><div class="n">'+r.points+'</div><div class="u">баллов</div></div></div>';
+      +'<div class="score"><div class="n">'+r.avg.toFixed(1).replace('.',',')+'</div><div class="u">ср. балл</div></div></div>';
   }).join('')+'</div>';
 }
 function statusPill(e){
@@ -484,13 +717,14 @@ function statusPill(e){
   return '<span class="pill reg">Открыл</span>';
 }
 function todayCard(m,idx){
-  const e=entryOf(m.id,idx),{col,ini}=avatar(m);
-  const spec=e&&e.kind==='special';
+  const ents=dayEntries(m.id,idx);
+  const e=ents.find(x=>x.kind==='regular')||ents[0];
+  const hasBonus=ents.some(x=>x.kind==='special');
   const opened=e&&e.opened_at;
   const body=opened?'<div class="task">'+esc(e.task_text)+'</div>':'<div class="task locktask">🔒 Ячейка ещё не открыта</div>';
-  return '<div class="card tcard '+(spec?'spec':'')+'"><div class="hd"><div class="ava" style="background:'+col+'">'+ini+'</div>'
-    +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc(m.team||'')+'</div></div></div>'
-    +body+'<div class="foot">'+statusPill(e)+(spec&&opened?'<span class="pill spec">🎁 Особая</span>':'')+'</div></div>';
+  return '<div class="card tcard"><div class="hd">'+avaTag(m)
+    +'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</div></div></div>'
+    +body+'<div class="foot">'+statusPill(e)+(hasBonus?'<span class="pill spec">🎁 +бонус</span>':'')+'</div></div>';
 }
 
 /* ---- CABINET ---- */
@@ -499,80 +733,160 @@ function viewCabinet(){
   let picks='';
   if(AUTH.role==='admin'){
     if(!UI.managerId||!S.managers.find(m=>m.id===UI.managerId))UI.managerId=S.managers[0].id;
-    picks='<div class="pickwrap">'+S.managers.map(m=>{const{col,ini}=avatar(m);
-      return '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'"><span class="ava" style="background:'+col+'">'+ini+'</span>'+esc(m.full_name)+'</button>'}).join('')+'</div>';
+    picks='<div class="pickwrap">'+S.managers.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>
+      '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'">'+avaTag(m)+esc(m.full_name)+'</button>').join('')+'</div>';
   }
   const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
   const isOwner=AUTH.role==='manager'&&AUTH.manager_id===m.id;
+  return picks+'<div class="cab">'+cabinetInner(m,isOwner)+'</div>';
+}
+function cabinetInner(m,isOwner){
   const s=statsOf(m),info=contestInfo();
   const cells=workdays().map((iso,i)=>{
-    const e=entryOf(m.id,i),eff=effToday();
+    const ents=dayEntries(m.id,i),eff=effToday();
     const rel=iso<eff?'past':(iso===eff?'today':'future');
-    const spec=e&&e.kind==='special';
-    let cls='cell '+rel+(spec?' spec':''),ic='';
-    if(rel==='future')ic='🔒';
+    const isAdmin=AUTH.role==='admin';
+    const hasSpec=ents.some(e=>e.kind==='special');
+    const hasCat=ents.some(e=>e.kind==='cat');
+    const showSpec=hasSpec&&(isAdmin||rel==='past');  // админ видит метки и на будущих днях
+    const showCat=hasCat&&(isAdmin||rel==='past');    // менеджеру сегодня/будущее — сюрприз
+    let cls='cell '+rel+(showSpec?' spec':'')+(showCat?' catday':''),ic='';
+    const opened=ents.some(e=>e.opened_at);
+    const allAppr=ents.length>0&&ents.every(e=>e.review==='approved');
+    const anyPend=ents.some(e=>e.review==='pending');
+    if(rel==='future')ic=showCat?'🐱':showSpec?'🎁':'🔒';
     else if(rel==='today'){
-      if(e&&e.review==='approved'){cls+=' done-today';ic='✓'}
-      else if(e&&e.review==='pending'){cls+=' review-today';ic='⏳'}
-      else if(e&&e.opened_at){ic=spec?'🎁':'•'}
+      if(allAppr){cls+=' done-today';ic='✓'}
+      else if(anyPend){cls+=' review-today';ic='⏳'}
+      else if(opened){ic=showCat?'🐱':showSpec?'🎁':'•'}
       else cls+=' pulse';
     }else{ // past
-      if(e&&e.review==='approved'){cls+=' done';ic='✓'}
-      else if(e&&e.review==='pending'){cls+=' review';ic='⏳'}
+      if(allAppr){cls+=' done';ic='✓'}
+      else if(anyPend){cls+=' review';ic='⏳'}
       else{cls+=' miss';ic='✕'}
     }
-    const openLab=(rel==='today'&&isOwner&&!(e&&e.opened_at))?'<span class="open-lab">Открыть</span>':'';
-    const canClick=(rel==='today'&&isOwner);
-    const attrs=canClick?'data-action="open-cell" data-eid="'+(e?e.id:'')+'"':'disabled';
+    const attrs=(rel==='past'||isAdmin)?'data-action="view-day" data-mid="'+m.id+'" data-day="'+i+'"':'disabled';
     return '<button class="'+cls+'" style="grid-column-start:'+parseISO(iso).getDay()+'" '+attrs+' title="'+fmtLong(iso)+'"><div><div class="d">'+fmtD(iso)+'</div></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:flex-end">'+openLab+'<div class="ic">'+ic+'</div></div></button>';
+      +'<div style="display:flex;justify-content:flex-end;align-items:flex-end"><div class="ic">'+ic+'</div></div></button>';
   }).join('');
   const cal='<div class="card cal"><h3>Календарь · '+esc(m.full_name)+'</h3>'
-    +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — особая задача на подарок'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
+    +'<div class="csub">'+esc(S.settings.subtitle)+' · 🎁 — есть бонус-задание · нажми на день, чтобы посмотреть'+(AUTH.role==='admin'?' · режим наблюдения':'')+'</div>'
     +'<div class="cal-week"><span class="cal-wd">Пн</span><span class="cal-wd">Вт</span><span class="cal-wd">Ср</span><span class="cal-wd">Чт</span><span class="cal-wd">Пт</span></div>'
     +'<div class="cells">'+cells+'</div></div>';
-  return picks+'<div class="cab">'+cal+todayPanel(m,s,info,isOwner)+'</div>';
+  return cal+todayPanel(m,s,info,isOwner);
 }
 function todayPanel(m,s,info,isOwner){
   let card;
   if(info.phase!=='live'||info.idx<0){
     card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">'+(info.phase==='before'?'Конкурс скоро стартует':info.phase==='after'?'Конкурс завершён':'Сегодня выходной')+'</div></div>';
   }else{
-    const e=entryOf(m.id,info.idx),spec=e&&e.kind==='special';
-    if(!e){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
-    else if(!e.opened_at){
-      card='<div class="reveal hidden"><div class="lockart">🎁</div><div class="big">Задача на сегодня скрыта</div>'
-        +(isOwner?'<div class="note">Открой ячейку '+fmtLong(e.edate)+', чтобы узнать задание дня.</div><button class="btn primary" data-action="open-cell" data-eid="'+e.id+'">Открыть ячейку дня</button>'
-                 :'<div class="note">Менеджер ещё не открыл ячейку.</div>')+'</div>';
-    }else{
-      const badge=spec?'<span class="pill spec">🎁 Особая задача — подарок</span>':'<span class="pill reg">Ежедневная задача — +1 балл</span>';
-      let block;
-      if(e.review==='approved')block='<span class="pill done">✓ '+(spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
-      else if(e.review==='pending')block='<span class="pill review">⏳ На проверке у руководителя</span>'+(isOwner?reportForm(e,'Изменить отчёт'):reportView(e));
-      else block=(isOwner?(e.review==='rejected'?'<span class="pill miss">Отклонено — отправь заново</span>':'')+reportForm(e,'Отправить на проверку'):reportView(e));
-      card='<div class="reveal pop '+(spec?'spec':'')+'">'+badge+'<div class="task">'+esc(e.task_text)+'</div>'+block+'</div>';
+    const ents=dayEntries(m.id,info.idx);
+    if(!ents.length){card='<div class="reveal hidden"><div class="lockart">🍂</div><div class="big">Задание не назначено</div></div>';}
+    else{
+      const pr=e=>e.kind==='regular'?1:0;                 // кот/бонус открываются первыми
+      const opened=ents.filter(e=>e.opened_at).sort((a,b)=>pr(a)-pr(b));
+      const unopened=ents.filter(e=>!e.opened_at);
+      const openedBlocks=opened.map(e=>taskBlock(e,isOwner));
+      let myst='';
+      if(unopened.length){
+        if(isOwner){
+          const label=opened.length?'Открыть следующее задание':'Открыть задание дня';
+          myst='<div class="mystery"><div class="mystery-q">?</div>'
+            +'<div class="mtitle">'+(opened.length?'У тебя ещё задание!':'Задание дня ждёт')+'</div>'
+            +'<div class="note">Что внутри — узнаешь, только открыв. Жми!</div>'
+            +'<button class="btn primary mbtn" data-action="open-next" data-mid="'+m.id+'" data-day="'+info.idx+'">'+label+'</button></div>';
+        }else{
+          myst='<div class="reveal hidden"><div class="lockart">🔒</div><div class="note">Менеджер ещё не открыл '+(opened.length?'всё':'задание дня')+'.</div></div>';
+        }
+      }
+      const highUnopened=unopened.some(e=>e.kind!=='regular');   // кот/бонус прилетел — меню сверху
+      const parts=highUnopened?[myst].concat(openedBlocks):openedBlocks.concat(myst);
+      card='<div class="taskstack">'+parts.filter(Boolean).join('')+'</div>';
     }
   }
-  return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задача дня</div></div>'
+  return '<div class="card panel"><div><div class="eyebrow">'+(info.idx>=0?fmtWD(effToday())+', '+fmtLong(effToday()):'—')+'</div><div class="big">Задачи дня</div></div>'
+    +rankStrip(m,isOwner)
     +card+'<div class="mini"><div class="box"><div class="n">'+s.points+'</div><div class="l">баллов</div></div>'
     +'<div class="box"><div class="n">🎁 '+s.gifts+'</div><div class="l">подарков</div></div>'
     +'<div class="box"><div class="n">'+s.doneDays+'/'+s.elapsed+'</div><div class="l">выполнено</div></div></div></div>';
 }
+function taskBlock(e,interactive){
+  const eff=effToday();
+  const rel=e.edate<eff?'past':(e.edate===eff?'today':'future');
+  const cat=e.kind==='cat', spec=e.kind==='special';
+  const badge=cat?'<span class="pill cat">🐱 КОТ В МЕШКЕ · +2 / −2</span>'
+    :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
+    :'<span class="pill reg">Ежедневная — +1 балл</span>';
+  const blockcls=cat?'cat':(spec?'spec':'');
+  let inner='';
+  const locked=!e.opened_at && rel!=='past' && AUTH.role!=='admin';   // админ видит задачи всегда
+  if(locked){
+    inner=interactive
+      ?'<div class="note">Нажми, чтобы открыть задание дня.</div><button class="btn primary sm" data-action="open-cell" data-eid="'+e.id+'">Открыть '+(cat?'кота 🐱':spec?'бонус 🎁':'задачу')+'</button>'
+      :'<div class="locktask">🔒 Ещё не открыта</div>';
+  }else{
+    inner=(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="task">'+esc(e.task_text)+'</div>';
+    if(cat)inner+='<div class="catwarn">⚠️ Супер-сложное задание. Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Можно один раз скинуть кота другому.</div>';
+    if(e.review==='approved'){
+      inner+='<span class="pill done">✓ '+(cat?'Зачтено +2 балла':spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
+      if(e.review_comment)inner+=commentBox(e.review_comment);
+    }else if(e.review==='pending'){
+      inner+='<span class="pill review">⏳ На проверке у руководителя</span>';
+      inner+= (interactive&&rel==='today')?deadlineOrForm(e,'Обновить отчёт'):reportView(e);
+    }else if(rel==='past'){
+      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено'+(cat?' −2 балла':'')+'</span>';if(e.review_comment)inner+=commentBox(e.review_comment);inner+=reportView(e);}
+      else inner+='<span class="pill miss">✕ Не зачтено'+(cat?' −2 балла':'')+'</span>';
+    }else{ // today, none/rejected
+      if(e.review==='rejected'){inner+='<span class="pill miss">Отклонено — переделай</span>';if(e.review_comment)inner+=commentBox(e.review_comment);}
+      inner+= interactive?deadlineOrForm(e,'Отправить на проверку'):reportView(e);
+    }
+    if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
+      const left=(e.reassigns_left||0)>0;
+      const inWin=e.opened_at && (Date.now()-new Date(e.opened_at).getTime()<=30*60000);
+      if(left&&inWin){const dl=new Date(e.opened_at).getTime()+30*60000,ss=Math.max(0,Math.floor((dl-Date.now())/1000));
+        inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'" data-deadline="'+dl+'">🫳 Скинуть кота другому · '+Math.floor(ss/60)+':'+String(ss%60).padStart(2,'0')+'</button>';}
+      else if(left&&!inWin) inner+='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';
+      else inner+='<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
+    }
+  }
+  return '<div class="taskblock '+blockcls+'">'+badge+inner+'</div>';
+}
+function deadlineOrForm(e,label){
+  if(pastDeadline())return '<div class="deadline">⏰ Приём отчётов закрыт: после 20:00 по Екатеринбургу сдать нельзя.</div>'+reportView(e);
+  return reportForm(e,label);
+}
+function commentBox(txt){return '<div class="commentbox">💬 <b>Администратор:</b> '+esc(txt)+'</div>';}
 function reportForm(e,btnLabel){
+  const id=e.id;
   return '<div class="field" style="margin:4px 0 0"><label>Отчёт о выполнении</label>'
-    +'<textarea id="repText" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
-    +'<div class="field" style="margin:0"><label>Ссылка на подтверждение (CRM, диск) — необязательно</label>'
-    +'<input id="repLink" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
-    +'<label class="filelabel">📎 Скриншот<input type="file" id="shotInput" accept="image/*"></label>'
-    +'<div id="shotPrev">'+(e.screenshot_url?'<img class="shot-prev" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
-    +'<button class="btn good" data-action="submit-report" data-eid="'+e.id+'" style="margin-top:4px">'+btnLabel+'</button>';
+    +'<textarea id="rt_'+id+'" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
+    +'<div class="field" style="margin:0"><label>Ссылка на подтверждение — необязательно</label>'
+    +'<input id="rl_'+id+'" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
+    +'<label class="filelabel">📎 Скриншот/видео<input type="file" class="shotinput" data-eid="'+id+'" accept="'+UPLOAD_ACCEPT+'"></label>'
+    +'<div class="note" style="margin-top:-2px">Фото, видео, аудио, PDF, Word, Excel — до 50 МБ. Больше — загрузи в облако и вставь ссылку выше.</div>'
+    +'<div id="sp_'+id+'">'+(pendingPrev[id]||(e.screenshot_url?mediaHTML(e.screenshot_url,'shot-prev',false):''))+'</div>'
+    +'<button class="btn good" data-action="submit-report" data-eid="'+id+'" style="margin-top:4px">'+btnLabel+'</button>';
 }
 function reportView(e){
   let h='';
   if(e.report_text)h+='<div class="rt" style="white-space:pre-wrap;font-size:14px;margin-top:6px">'+esc(e.report_text)+'</div>';
   if(e.report_link)h+='<div style="margin-top:6px">'+linkify(e.report_link)+'</div>';
-  if(e.screenshot_url)h+='<img class="shot-prev" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
-  return h;
+  if(e.screenshot_url)h+='<div style="margin-top:8px">'+mediaHTML(e.screenshot_url,'shot-prev',true)+'</div>';
+  return h||'<div class="note">— отчёт не заполнен —</div>';
+}
+function showDayModal(mgrId,dayIdx){
+  const iso=workdays()[dayIdx]; if(iso==null)return;
+  const ents=dayEntries(mgrId,dayIdx);
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="font-size:18px">'+fmtLong(iso)+', '+fmtWD(iso)+'</h3>'
+    +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>';
+  h+= ents.length?'<div class="taskstack">'+ents.map(e=>taskBlock(e,false)).join('')+'</div>':'<div class="note">Заданий нет.</div>';
+  const ov=document.createElement('div');ov.className='reveal-ov';
+  ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-day"]'))close();
+    if(ev.target.closest('[data-action="zoom"]')){const im=ev.target.closest('img');if(im)lightbox(im.getAttribute('src'))}});
+  document.addEventListener('keydown',function ek(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',ek)}});
 }
 
 /* ---- REVIEW (admin) ---- */
@@ -583,15 +897,16 @@ function viewReview(){
   let out='<div class="section-h"><h2>Проверка отчётов</h2><span class="hint">'+items.length+' на проверке</span></div>';
   if(!items.length){out+='<div class="card empty"><div class="big">Всё проверено 🎉</div><div>Новые отчёты появятся здесь, как только менеджеры их отправят.</div></div>';return out}
   out+='<div class="card lb">'+items.map(({e,m})=>{
-    const{col,ini}=avatar(m),spec=e.kind==='special';
-    return '<div class="rev-item"><div class="ava" style="background:'+col+'">'+ini+'</div>'
+    const spec=e.kind==='special';
+    return '<div class="rev-item">'+avaTag(m)
       +'<div class="rev-body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(m.full_name)+'</b>'
       +'<span class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая':'Ежедневная')+'</span>'
       +'<span class="note">'+fmtLong(e.edate)+'</span></div>'
-      +'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
+      +(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
       +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
       +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
-      +(e.screenshot_url?'<img class="rev-thumb" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
+      +(e.screenshot_url?mediaHTML(e.screenshot_url,'rev-thumb',true):'')
+      +'<textarea id="revc_'+e.id+'" class="revcomment" rows="2" placeholder="Комментарий менеджеру (необязательно) — увидит в кабинете"></textarea>'
       +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
       +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
   }).join('')+'</div>';
@@ -600,11 +915,13 @@ function viewReview(){
 
 /* ---- ADMIN ---- */
 function viewAdmin(){
-  const mlist=S.managers.map(m=>{const{col,ini}=avatar(m);
-    return '<div class="mrow"><div class="ava" style="background:'+col+'">'+ini+'</div>'
-      +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:140px">'
-      +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="команда" style="flex:1;min-width:90px">'
-      +'<input value="" data-mid="'+m.id+'" data-f="pin" placeholder="PIN" maxlength="4" style="width:70px" inputmode="numeric">'
+  const dirSel=(id,cur)=>'<select data-mid="'+id+'" data-f="direction">'+DIRS.map(d=>'<option '+((cur||'ЦК')===d?'selected':'')+'>'+d+'</option>').join('')+'</select>';
+  const mlist=S.managers.map(m=>{
+    return '<div class="mrow"><label class="avaup" title="Загрузить аватар">'+avaTag(m)+'<input type="file" class="avainput" data-mid="'+m.id+'" accept="image/*"></label>'
+      +'<input value="'+esc(m.full_name)+'" data-mid="'+m.id+'" data-f="name" style="flex:2;min-width:130px">'
+      +dirSel(m.id,m.direction)
+      +'<input value="'+esc(m.team||'')+'" data-mid="'+m.id+'" data-f="team" placeholder="отдел" style="flex:1;min-width:80px">'
+      +'<input value="" data-mid="'+m.id+'" data-f="pin" placeholder="PIN" maxlength="4" style="width:66px" inputmode="numeric">'
       +'<button class="btn sm ghost" data-action="save-mgr" data-id="'+m.id+'">Сохранить</button>'
       +'<button class="btn sm ghost" data-action="del-mgr" data-id="'+m.id+'" data-name="'+esc(m.full_name)+'">✕</button></div>'}).join('');
   const dayOpts=workdays().map(iso=>'<option value="'+iso+'" '+((S.settings.today_override===iso)?'selected':'')+'>'+fmtLong(iso)+', '+fmtWD(iso)+'</option>').join('');
@@ -612,8 +929,10 @@ function viewAdmin(){
     +'<div class="card"><h3>Участники и PIN-коды</h3>'
     +'<div class="note" style="margin-bottom:10px">PIN показывается один раз при добавлении. Здесь можно задать новый (впиши в поле PIN и «Сохранить»). Полный список для раздачи — кнопкой ниже.</div>'
     +(mlist||'<div class="note">Пока никого нет.</div>')
-    +'<div class="row2" style="margin-top:14px"><div class="field" style="margin:0"><label>Имя</label><input id="newName" placeholder="Фамилия Имя"></div>'
-    +'<div class="field" style="margin:0"><label>Команда</label><input id="newTeam" placeholder="Альфа"></div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:14px">'
+    +'<div class="field" style="margin:0;flex:2;min-width:140px"><label>Имя</label><input id="newName" placeholder="Фамилия Имя"></div>'
+    +'<div class="field" style="margin:0;flex:1;min-width:90px"><label>Направление</label><select id="newDir">'+DIRS.map(d=>'<option>'+d+'</option>').join('')+'</select></div>'
+    +'<div class="field" style="margin:0;flex:1;min-width:90px"><label>Отдел</label><input id="newTeam" placeholder="Отдел 1"></div>'
     +'<button class="btn primary" data-action="add-mgr">+ Добавить</button></div>'
     +'<div style="margin-top:12px"><button class="btn" data-action="list-pins">📋 Показать список PIN-кодов</button></div></div>'
 
@@ -621,14 +940,13 @@ function viewAdmin(){
     +'<div class="field"><label>Считать «сегодня» датой</label><select data-action="set-today"><option value="">— выключить (реальная дата) —</option>'+dayOpts+'</select></div>'
     +'<div class="note">Перематывает календарь на любой день октября для предпросмотра. Перед стартом конкурса выключи.</div></div>'
 
-    +'<div class="card"><h3>Ежедневные задачи (+1 балл)</h3>'
-    +'<div class="note" style="margin-bottom:8px">Одна задача на строку. У каждого менеджера — своя из списка.</div>'
-    +'<textarea id="poolReg" rows="10">'+esc(S.reg.map(x=>x.body).join('\n'))+'</textarea></div>'
-    +'<div class="card"><h3>Особые задачи (🎁 подарок)</h3>'
-    +'<div class="note" style="margin-bottom:8px">Каждому случайно выпадает 5 штук на месяц.</div>'
-    +'<textarea id="poolSpec" rows="7">'+esc(S.sp.map(x=>x.body).join('\n'))+'</textarea>'
-    +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи</button> '
-    +'<span class="note">Применится ко всем; уже начатые дни не перезапишутся.</span></div></div>'
+    +poolsCard()
+
+    +catCard()
+
+    +blitzCard()
+
+    +tgCard()
 
     +'<div class="card"><h3>Название и PIN администратора</h3>'
     +'<div class="row2"><div class="field" style="margin:0"><label>Заголовок</label><input id="setTitle" value="'+esc(S.settings.title)+'"></div>'
@@ -638,6 +956,70 @@ function viewAdmin(){
 
     +'<div class="card"><h3>Сброс</h3><div class="note" style="margin-bottom:12px">Очистить все отметки и отчёты у всех. Задачи и участники останутся. Сделай перед реальным стартом.</div>'
     +'<button class="btn danger" data-action="reset-progress">Сбросить весь прогресс</button></div></div>';
+}
+function poolsCard(){
+  const dir=UI.poolDir;
+  const reg=S.reg.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.title?x.title+' | '+x.body:x.body).join('\n');
+  const sp =S.sp.filter(x=>(x.direction||'')===dir).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.title?x.title+' | '+x.body:x.body).join('\n');
+  return '<div class="card"><h3>Задачи по направлениям</h3>'
+    +'<div class="seg" style="margin-bottom:12px">'+DIRS.map(d=>'<button data-action="pooldir" data-dir="'+d+'" aria-current="'+(dir===d)+'">'+d+'</button>').join('')+'</div>'
+    +'<div class="titlehint">✏️ Формат строки: <b>Название | Текст задания</b>. Название показывается крупно при открытии. Без «|» — просто текст, как раньше.</div>'
+    +'<div class="note" style="margin-bottom:6px">Направление <b>'+esc(dir)+'</b> · ежедневные задачи (одна на строку, +1 балл):</div>'
+    +'<textarea id="poolReg" rows="8">'+esc(reg)+'</textarea>'
+    +'<div class="note" style="margin:12px 0 6px">🎁 Особые задачи (бонус — подарок), одна на строку:</div>'
+    +'<textarea id="poolSpec" rows="5">'+esc(sp)+'</textarea>'
+    +'<div style="margin-top:12px"><button class="btn primary" data-action="save-pools">Сохранить задачи «'+esc(dir)+'»</button> '
+    +'<span class="note">Применится к менеджерам этого направления; начатые дни не перезапишутся.</span></div></div>';
+}
+function catCard(){
+  const list=(S.cat||[]).slice().sort((a,b)=>a.ord-b.ord).map(x=>x.title?x.title+' | '+x.body:x.body).join('\n');
+  return '<div class="card"><h3>🐱 Кот в мешке</h3>'
+    +'<div class="note" style="margin-bottom:10px">Общий список для всех направлений. Каждый участник получает «кота» ровно 1 раз за месяц в случайный день (не больше 3 котов в день, не в день бонуса). +2 за выполнение, −2 за провал.</div>'
+    +'<div class="titlehint">✏️ Формат строки: <b>Название | Текст задания</b>. Одна задача — одна строка.</div>'
+    +'<textarea id="catPool" rows="8">'+esc(list)+'</textarea>'
+    +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn primary" data-action="save-catpool">Сохранить список</button>'
+    +'<button class="btn" data-action="assign-cats">🐱 Раздать «Котов в мешке»</button>'
+    +'<span class="note">После правки списка нажми «Раздать» — тогда коты получат новые формулировки.</span></div></div>';
+}
+function blitzCard(){
+  const eff=effToday(), activeToday=blitzActive();
+  const rows=workdays().map(iso=>{
+    const b=(S.blitz||[]).find(x=>x.edate===iso)||{};
+    const tm=((b.start_time||'15:00:00')+'').slice(0,5);
+    const winner=b.winner_manager_id?'<div class="bwin"><span class="pill done">🏆 '+esc(mgrName(b.winner_manager_id))+'</span> <button class="btn sm ghost" data-action="clear-blitz" data-date="'+iso+'">сбросить</button></div>':'';
+    const launch = iso===eff
+      ? '<div class="bwin">'+(activeToday
+          ? '<span class="pill review">⚡ идёт сейчас</span> <button class="btn sm danger" data-action="stop-blitz" data-date="'+iso+'">Остановить</button>'
+          : '<button class="btn sm" data-action="launch-blitz" data-date="'+iso+'" style="border-color:#E4BE5C;color:#B07A0E">▶ Запустить сейчас (тест)</button>')+'</div>'
+      : '';
+    const subs=(S.blitz_sub||[]).filter(x=>x.edate===iso).slice().sort((a,c)=>(a.submitted_at<c.submitted_at?-1:1));
+    let subsHtml='';
+    if(subs.length){
+      subsHtml='<div class="bsublist"><div class="note" style="font-weight:700;color:var(--ink)">Отчёты (по порядку отправки) — засчитай первого, кто сделал правильно:</div>'
+        +subs.map((sub,idx)=>{const isWin=b.winner_manager_id===sub.manager_id;
+          return '<div class="bsub'+(isWin?' win':'')+'"><div class="bsub-n">'+(idx+1)+'</div>'
+            +'<div class="bsub-body"><b>'+esc(mgrName(sub.manager_id))+'</b> <span class="note">'+fmtTime(sub.submitted_at)+'</span>'
+            +'<div class="rt">'+esc(sub.report)+'</div></div>'
+            +(isWin?'<span class="pill done">🏆 +1</span>':'<button class="btn sm good" data-action="award-blitz" data-date="'+iso+'" data-mid="'+sub.manager_id+'">Засчитать +1</button>')
+            +'</div>';}).join('')+'</div>';
+    }
+    return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+(iso===eff?' · сегодня':'')+'</div>'
+      +'<input data-bz="'+iso+'" value="'+esc(b.body||'')+'" placeholder="Название | Блиц-задание на этот день">'
+      +'<input type="time" data-bztime="'+iso+'" value="'+tm+'" title="Время запуска (ЕКБ)">'
+      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+'</div>';
+  }).join('');
+  return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
+    +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. Всплывает у всех автоматически в указанное время (по умолчанию 15:00 ЕКБ) — время можно менять для каждого дня. Окно 30 минут; первый, кто отправит отчёт, получает +1 балл. Кнопка <b>«Запустить сейчас»</b> — для теста: блиц немедленно всплывёт у всех на 30 минут.</div>'
+    +'<div class="blist">'+rows+'</div></div>';
+}
+function tgCard(){
+  return '<div class="card"><h3>📣 Телеграм-уведомления</h3>'
+    +'<div class="note" style="margin-bottom:10px"><b>Канал участников</b> — новости: утренняя отбивка (9:00), кот, перекидывания кота, запуск/победитель блица, итоги дня (20:30).<br><b>Канал руководителей</b> — все отчёты сотрудников (ФИО · задание · отчёт + скрин). Один бот пишет в оба — добавь его админом в оба канала. Токен наружу не виден; пустое поле при сохранении не затирает сохранённое.</div>'
+    +'<div class="field"><label>Токен бота (от @BotFather)</label><input id="tgToken" placeholder="123456789:AA..." autocomplete="off"></div>'
+    +'<div class="field"><label>ID канала участников (@имя_канала или -100…)</label><input id="tgChat" placeholder="@my_channel"></div>'
+    +'<div class="field"><label>ID канала руководителей — все отчёты (необязательно)</label><input id="tgReports" placeholder="@my_reports_channel"></div>'
+    +'<button class="btn primary" data-action="save-tg">Сохранить и включить</button> '
+    +'<button class="btn" data-action="test-tg">Отправить тест в оба</button></div>';
 }
 
 /* =====================================================================
@@ -650,10 +1032,20 @@ document.addEventListener('click',async e=>{
   if(a==='zoom')return lightbox(t.getAttribute('src'));
   if(a==='nav'){UI.view=t.dataset.view;persist();render();scrollTo(0,0);return}
   if(a==='lbtab'){UI.lbTab=t.dataset.tab;persist();render();return}
+  if(a==='dir'){UI.dirFilter=t.dataset.dir;persist();render();return}
+  if(a==='pooldir'){UI.poolDir=t.dataset.dir;persist();render();return}
   if(a==='login-tab'){UI.loginTab=t.dataset.tab;render();return}
   if(a==='logout'){AUTH={role:'guest'};UI.view='board';persist();render();return}
   if(a==='open-cab'){ if(AUTH.role==='admin'){UI.view='cabinet';UI.managerId=t.dataset.id;persist();render();scrollTo(0,0);} return}
   if(a==='pick'){UI.managerId=t.dataset.id;persist();render();return}
+  if(a==='view-day'){showDayModal(t.dataset.mid,+t.dataset.day);return}
+  if(a==='close-day')return;
+  if(a==='reassign-cat'){showReassignModal(t.dataset.eid);return}
+  if(a==='do-reassign'){
+    const eid=t.dataset.eid,target=t.dataset.target;
+    if(reassignOv){reassignOv.remove();reassignOv=null}
+    return act('reassign_cat',{p_token:AUTH.token,p_entry:eid,p_target:target},'Кот в мешке переназначен 🐱');
+  }
 
   if(a==='do-login-mgr'){
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
@@ -673,50 +1065,101 @@ document.addEventListener('click',async e=>{
   }
 
   if(a==='close-reveal')return;
-  if(a==='open-cell'){
-    const eid=t.dataset.eid;
-    const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
+  if(a==='open-cell'){ await openAndReveal(t.dataset.eid); return; }
+  if(a==='open-next'){
+    const mid=t.dataset.mid, day=+t.dataset.day;
+    const un=dayEntries(mid,day).filter(e=>!e.opened_at);
+    if(!un.length)return;
+    un.sort((a,b)=>(a.kind==='regular'?1:0)-(b.kind==='regular'?1:0)); // кот/бонус первыми
+    await openAndReveal(un[0].id);
+    return;
+  }
+  if(a==='bz-min'){const ta=$('#bzReport');if(ta)bzDraft=ta.value;const b=blitzForToday();bzMinDate=b?b.edate:null;renderBlitzWidget();return}
+  if(a==='bz-max'){bzMinDate=null;renderBlitzWidget();return}
+  if(a==='blitz-submit'){
+    const rep=($('#bzReport')&&$('#bzReport').value||'').trim();
+    if(!rep)return toast('Напиши пару слов — что сделал');
+    const r=await rpc('blitz_submit',{p_token:AUTH.token,p_report:rep}).catch(()=>null);
     if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
-    if(r.ok===false){toast(errMsg(r.err));return}
+    if(r.ok===false)return toast(errMsg(r.err));
     await loadAll();render();
-    showRevealModal(S.entries.find(x=>x.id===eid));
+    toast('✅ Отчёт отправлен на проверку');
+    return;
+  }
+  if(a==='save-blitz'){
+    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
+    return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:'',p_start:tel?tel.value:'15:00'},'Блиц на '+fmtLong(iso)+' сохранён');
+  }
+  if(a==='clear-blitz'){if(confirm('Сбросить победителя блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
+  if(a==='launch-blitz'){
+    const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
+    const body=el?el.value.trim():'';
+    if(!body)return toast('Сначала впиши задание для этого дня');
+    await rpc('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:body,p_start:tel?tel.value:'15:00'}).catch(()=>null);
+    const r=await rpc('admin_launch_blitz',{p_token:AUTH.token,p_edate:iso}).catch(()=>null);
+    if(r&&r.ok){await loadAll();render();toast('⚡ Блиц запущен — всплыл у всех на 30 минут');}
+    else toast(r?errMsg(r.err):'Не удалось запустить');
+    return;
+  }
+  if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
+  if(a==='award-blitz'){return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:t.dataset.mid},'Зачтено! +1 балл');}
+  if(a==='save-tg'){
+    const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim(), rc=$('#tgReports').value.trim();
+    if(!tk||!ch)return toast('Заполни токен бота и ID канала участников');
+    return act('admin_set_tg',{p_token:AUTH.token,p_bot:tk,p_chat:ch,p_enabled:true,p_reports_chat:rc||null,p_reports_enabled:rc?true:null},'Телеграм подключён');
+  }
+  if(a==='test-tg'){
+    const r=await rpc('tg_test',{p_token:AUTH.token}).catch(()=>null);
+    if(r&&r.ok)toast('Тест отправлен — проверь канал'); else toast('Не удалось (сначала сохрани настройки)');
     return;
   }
 
   if(a==='submit-report'){
     const eid=t.dataset.eid;
-    const text=($('#repText')&&$('#repText').value||'').trim();
-    const link=($('#repLink')&&$('#repLink').value||'').trim();
+    if(pastDeadline())return toast('После 20:00 по Екатеринбургу отчёт сдать нельзя');
+    const text=($('#rt_'+eid)&&$('#rt_'+eid).value||'').trim();
+    const link=($('#rl_'+eid)&&$('#rl_'+eid).value||'').trim();
     let shot=null;
-    if(pendingShot){t.disabled=true;t.textContent='Загружаю скриншот…';
-      try{shot=await uploadShot(eid,pendingShot)}catch(err){t.disabled=false;return toast('Не удалось загрузить скриншот')}}
+    if(pendingShots[eid]){const f=pendingShots[eid];t.disabled=true;
+      t.textContent=f.size>5242880?'Загружаю файл ('+fmtMB(f.size)+')… не закрывай страницу':'Загружаю файл…';
+      uploading=true;
+      try{shot=await uploadShot(eid,f)}
+      catch(err){uploading=false;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
+        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Не удалось загрузить файл. Проверь интернет или пришли ссылкой')}
+      uploading=false}
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
-    if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или скриншот')}
-    pendingShot=null;
+    if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или файл')}
+    delete pendingShots[eid]; delete pendingPrev[eid];
     return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
   }
 
-  if(a==='review'){return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
+  if(a==='review'){const cEl=$('#revc_'+t.dataset.eid);const comment=cEl?cEl.value.trim():'';
+    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
 
   if(a==='add-mgr'){
-    const name=$('#newName').value.trim(), team=$('#newTeam').value.trim();
+    const name=$('#newName').value.trim(), team=$('#newTeam').value.trim(), dir=$('#newDir').value;
     if(!name)return toast('Введи имя');
-    const r=await act('admin_add_manager',{p_token:AUTH.token,p_name:name,p_team:team});
-    if(r&&r.ok)setTimeout(()=>alert('Добавлен: '+name+'\nPIN: '+r.pin+'\n\nЗапиши и передай менеджеру.'),50);
+    const r=await act('admin_add_manager',{p_token:AUTH.token,p_name:name,p_team:team,p_direction:dir});
+    if(r&&r.ok)setTimeout(()=>alert('Добавлен: '+name+' ('+dir+')\nPIN: '+r.pin+'\n\nЗапиши и передай менеджеру.'),50);
     return;
   }
   if(a==='save-mgr'){
     const id=t.dataset.id, get=f=>{const el=document.querySelector('[data-mid="'+id+'"][data-f="'+f+'"]');return el?el.value.trim():''};
     const pin=get('pin');
     if(pin&&!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
-    return act('admin_update_manager',{p_token:AUTH.token,p_id:id,p_name:get('name'),p_team:get('team'),p_pin:pin||null,p_active:true},'Сохранено');
+    return act('admin_update_manager',{p_token:AUTH.token,p_id:id,p_name:get('name'),p_team:get('team'),p_pin:pin||null,p_active:true,p_direction:get('direction')},'Сохранено');
   }
   if(a==='del-mgr'){if(confirm('Удалить '+t.dataset.name+'? Прогресс участника тоже удалится.'))return act('admin_delete_manager',{p_token:AUTH.token,p_id:t.dataset.id},'Удалён');return}
   if(a==='save-pools'){
     const reg=$('#poolReg').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const sp=$('#poolSpec').value.split('\n').map(s=>s.trim()).filter(Boolean);
-    return act('admin_set_pools',{p_token:AUTH.token,p_regular:reg,p_special:sp},'Задачи сохранены');
+    return act('admin_set_pools',{p_token:AUTH.token,p_direction:UI.poolDir,p_regular:reg,p_special:sp,p_cat:null},'Задачи «'+UI.poolDir+'» сохранены');
   }
+  if(a==='save-catpool'){
+    const lines=$('#catPool').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    return act('admin_set_cat_pool',{p_token:AUTH.token,p_lines:lines},'Список котов сохранён — теперь нажми «Раздать»');
+  }
+  if(a==='assign-cats'){if(confirm('Раздать «Котов в мешке» заново? Каждому достанется 1 кот за месяц в случайный день, не больше 3 в день (текущий прогресс по котам сбросится).'))return act('admin_assign_cats',{p_token:AUTH.token},'Коты в мешке розданы 🐱');return}
   if(a==='set-today'){return}
   if(a==='save-settings'){
     return act('admin_set_settings',{p_token:AUTH.token,p_title:$('#setTitle').value,p_subtitle:$('#setSub').value,
@@ -736,32 +1179,284 @@ document.addEventListener('change',e=>{
   act('admin_set_settings',{p_token:AUTH.token,p_title:'',p_subtitle:S.settings.subtitle,p_today_override:t.value||'',p_admin_pin:null});
 });
 function onShotPick(e){
-  const f=e.target.files&&e.target.files[0]; if(!f)return; pendingShot=f;
-  const url=URL.createObjectURL(f); const box=$('#shotPrev');
-  if(box)box.innerHTML='<img class="shot-prev" src="'+url+'">';
+  const inp=e.target, eid=inp.dataset.eid, f=inp.files&&inp.files[0]; if(!f||!eid)return;
+  if(f.size>MAX_UPLOAD){inp.value='';return toast('Файл '+fmtMB(f.size)+' — больше 50 МБ. Загрузи его в облако и вставь ссылку')}
+  pendingShots[eid]=f;
+  const url=URL.createObjectURL(f), box=$('#sp_'+eid), t=f.type||'';
+  const info='<div class="note">📎 '+esc(f.name||'файл')+' · '+fmtMB(f.size)+' — загрузится при отправке</div>';
+  pendingPrev[eid]=/^image\//.test(t)?'<img class="shot-prev" src="'+url+'">'
+    :/^video\//.test(t)?'<video class="shot-prev shot-media" src="'+url+'" controls preload="metadata" playsinline></video>'+info
+    :/^audio\//.test(t)?'<audio class="shot-audio" src="'+url+'" controls></audio>'+info
+    :info;
+  if(box)box.innerHTML=pendingPrev[eid];
 }
+function compressSquare(file,size){
+  return new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);
+    img.onload=()=>{const s=Math.min(img.width,img.height);const c=document.createElement('canvas');c.width=size;c.height=size;
+      c.getContext('2d').drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,size,size);URL.revokeObjectURL(url);
+      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.85)};
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
+}
+async function onAvatarPick(e){
+  const inp=e.target, id=inp.dataset.mid, f=inp.files&&inp.files[0]; if(!f||!id)return;
+  toast('Загружаю аватар…');
+  try{
+    const blob=await compressSquare(f,256);
+    const path='avatars/'+id+'/'+Date.now()+'.jpg';
+    const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:'image/jpeg',upsert:true});
+    if(error)throw error;
+    const url=sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
+    await act('admin_set_avatar',{p_token:AUTH.token,p_id:id,p_url:url},'Аватар обновлён');
+  }catch(err){console.error(err);toast('Не удалось загрузить аватар')}
+}
+function catEligible(e){return S.managers.filter(m=>m.id!==e.manager_id&&dayEntries(m.id,e.day_index).every(x=>x.kind!=='special'&&x.kind!=='cat'))}
+function showReassignModal(eid){
+  const e=S.entries.find(x=>x.id===eid); if(!e)return;
+  const list=catEligible(e);
+  let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="font-size:18px">🐱 Отдать «Кота в мешке»</h3>'
+    +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>'
+    +'<div class="note">Переназначить можно только один раз. Выбранный участник получит это задание и будет отдуваться за него.</div>';
+  h+= list.length?'<div class="reassign-list">'+list.map(m=>'<button data-action="do-reassign" data-eid="'+eid+'" data-target="'+m.id+'">'+avaTag(m)+esc(m.full_name)+' · '+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</button>').join('')+'</div>'
+    :'<div class="note" style="margin-top:10px">Нет подходящих участников (у остальных уже есть бонус или кот в этот день).</div>';
+  const ov=document.createElement('div');ov.className='reveal-ov';
+  ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
+  document.body.appendChild(ov);
+  reassignOv=ov;
+  const close=()=>{ov.remove();reassignOv=null};
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-day"]'))close()});
+}
+let reassignOv=null;
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
+async function openAndReveal(eid){
+  const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
+  if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
+  if(r.ok===false){toast(errMsg(r.err));return}
+  await loadAll();render();
+  const e=S.entries.find(x=>x.id===eid);
+  if(e&&e.kind==='cat')showCatReveal(e); else showRevealModal(e);
+}
+function playCatSound(){
+  let done=false;
+  try{const a=new Audio('./cat.mp3');a.volume=0.75;a.play().then(()=>{done=true}).catch(()=>{if(!done)synthMeow()});}
+  catch(e){synthMeow()}
+}
+function synthMeow(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); if(ctx.state==='suspended')ctx.resume();
+    const now=ctx.currentTime;
+    for(let i=0;i<5;i++){const t=now+i*0.42;
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(520+i*30,t);
+      o.frequency.exponentialRampToValueAtTime(780+i*30,t+0.12);
+      o.frequency.exponentialRampToValueAtTime(430+i*20,t+0.34);
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.22,t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.4);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.42);}
+    setTimeout(()=>{try{ctx.close()}catch(e){}},3200);
+  }catch(e){}
+}
+function playFileSound(url,fallback){
+  let done=false;
+  try{const a=new Audio(url);a.volume=0.72;a.play().then(()=>{done=true}).catch(()=>{if(!done&&fallback)fallback()});}
+  catch(e){if(fallback)fallback()}
+}
+function synthChime(){
+  try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const ctx=new AC();if(ctx.state==='suspended')ctx.resume();
+    const now=ctx.currentTime,notes=[523,659,784,1047];
+    notes.forEach((f,i)=>{const t=now+i*0.09,o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.18,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+0.5);
+      o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.55);});
+    setTimeout(()=>{try{ctx.close()}catch(e){}},2000);
+  }catch(e){}
+}
+function fireworks(host,duration){
+  const cv=document.createElement('canvas');cv.className='rv-fw';
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';
+  host.appendChild(cv);const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);
+  const parts=[],cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#E5896A','#82B6F8','#B58BE0','#ff5252'];
+  function burst(x,y){const n=34+Math.floor(Math.random()*22),col=cols[Math.floor(Math.random()*cols.length)];
+    for(let i=0;i<n;i++){const a=(Math.PI*2*i)/n+Math.random()*0.3,sp=1.8+Math.random()*3.4;
+      parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,col:Math.random()<0.25?cols[Math.floor(Math.random()*cols.length)]:col,r:1.6+Math.random()*1.8});}}
+  const start=performance.now();let lastBurst=0;
+  function frame(t){const el=t-start;ctx.clearRect(0,0,innerWidth,innerHeight);
+    if(el<duration-500 && t-lastBurst>Math.max(200,420-el/6)){lastBurst=t;burst(innerWidth*(0.15+Math.random()*0.7),innerHeight*(0.15+Math.random()*0.5));}
+    for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.vy+=0.045;p.x+=p.vx;p.y+=p.vy;p.vx*=0.99;p.life-=0.011;
+      if(p.life<=0){parts.splice(i,1);continue;}
+      ctx.globalAlpha=Math.max(p.life,0);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
+    ctx.globalAlpha=1;
+    if(el<duration||parts.length)requestAnimationFrame(frame);else cv.remove();
+  }
+  requestAnimationFrame(frame);
+}
+function showCatReveal(e){
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  playCatSound();
+  const ov=document.createElement('div');ov.className='catrv';
+  ov.innerHTML='<div class="catrv-ripple"></div><div class="catrv-scan"></div><div class="catrv-cats"></div>'
+    +'<div class="catrv-box">'
+    +'<div class="catrv-title">🐱 КОТ В МЕШКЕ!</div>'+(taskTitle(e)?'<div class="catrv-name">«'+esc(taskTitle(e))+'»</div>':'')
+    +'<div class="catrv-emoji">🙀</div>'
+    +'<div class="catrv-task">'+esc(e.task_text)+'</div>'
+    +'<div class="catrv-warn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>'
+    +'<button class="btn primary catrv-btn" data-action="close-catrv" disabled>Смотри внимательно… 5</button>'
+    +'</div>';
+  document.body.appendChild(ov);
+  const catset=['🐱','😹','😼','😻','🙀','😾','😸','🐈','😺','🐈‍⬛'];
+  if(!reduce){const box=ov.querySelector('.catrv-cats');
+    for(let i=0;i<28;i++){const s=document.createElement('i');s.textContent=catset[Math.floor(Math.random()*catset.length)];
+      s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.fontSize=(26+Math.random()*40).toFixed(0)+'px';
+      s.style.animationDuration=(2.6+Math.random()*2.6).toFixed(2)+'s';s.style.animationDelay=(Math.random()*2.2).toFixed(2)+'s';
+      s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');box.appendChild(s);}}
+  const btn=ov.querySelector('.catrv-btn');
+  let remain=5;
+  const iv=setInterval(()=>{remain--;
+    if(remain>0){btn.textContent='Смотри внимательно… '+remain;}
+    else{clearInterval(iv);btn.disabled=false;btn.textContent='ПРИНЯТЬ ВЫЗОВ 😼';}
+  },1000);
+  const close=()=>{if(remain>0)return;clearInterval(iv);ov.remove()};
+  ov.addEventListener('click',ev=>{if(ev.target.closest('[data-action="close-catrv"]'))close()});
+}
 function showRevealModal(e){
   if(!e)return;
-  const spec=e.kind==='special';
+  const spec=e.kind==='special', cat=e.kind==='cat';
+  const variant=cat?'cat':(spec?'spec':'');
   const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
-  const ov=document.createElement('div');ov.className='reveal-ov';
-  ov.innerHTML='<div class="reveal-modal">'
-    +'<div class="rv-orb '+(spec?'spec':'')+'">'+(spec?'🎁':fmtD(e.edate))+'</div>'
+  playFileSound(spec?'./bonus.mp3':'./open.mp3', synthChime);
+  const hypes=cat?['😱 КОТ В МЕШКЕ','ОПАСНОЕ ЗАДАНИЕ','НЕ ПРОВАЛИ','−2 ЗА ПРОВАЛ']
+    :spec?['🎁 БОНУС!','ЖИРНЫЙ ЛУТ','ЛОВИ ПОДАРОК','РЕДКИЙ ДРОП']
+    :['ЗАДАЧА ДНЯ','ТВОЙ ХОД','GO GO GO','ВЫЗОВ ПРИНЯТ'];
+  const ttl=taskTitle(e);
+  const hype=ttl?esc(ttl):hypes[Math.floor(Math.random()*hypes.length)];
+  const orb=cat?'🐱':(spec?'🎁':fmtD(e.edate));
+  const pill=cat?'<span class="pill cat">🐱 КОТ В МЕШКЕ · +2 / −2</span>'
+    :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
+    :'<span class="pill reg">Задача дня — +1 балл</span>';
+  const warn=cat?'<div class="catwarn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>':'';
+  const btn=cat?'ПРИНЯТЬ ВЫЗОВ 😼':'ПОГНАЛИ 🚀';
+  const ov=document.createElement('div');ov.className='reveal-ov rv-boom'+(cat?' cat-boom':spec?' spec':'');
+  ov.innerHTML='<div class="reveal-modal rv-big '+variant+'">'
+    +'<div class="rv-hype'+(ttl&&ttl.length>16?' long':'')+'">'+hype+'</div>'
+    +'<div class="rv-orb '+variant+'">'+orb+'</div>'
     +'<div class="rv-content"><div class="rv-eyebrow">'+fmtLong(e.edate)+' · '+fmtWD(e.edate)+'</div>'
-    +'<div class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая задача — подарок':'Задача дня — +1 балл')+'</div>'
-    +'<div class="rv-task">'+esc(e.task_text)+'</div>'
-    +'<button class="btn primary" data-action="close-reveal" style="justify-content:center">Приступить →</button></div>'
-    +'<div class="rv-confetti"></div></div>';
+    +pill
+    +'<div class="rv-task">'+esc(e.task_text)+'</div>'+warn
+    +'<button class="btn primary rv-go" data-action="close-reveal">'+btn+'</button></div>'
+    +'<div class="rv-flash"></div><div class="rv-confetti"></div><div class="rv-emojis"></div></div>';
   document.body.appendChild(ov);
-  if(!reduce){const c=ov.querySelector('.rv-confetti');const cols=['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8'];
-    for(let i=0;i<18;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=55+Math.random()*100;
+  if(!reduce)fireworks(ov,2600);
+  if(!reduce){
+    const c=ov.querySelector('.rv-confetti');
+    const cols=cat?['#D93A2F','#B3261E','#7A130C','#E85141','#3a0a06']:['#1E6FE0','#4D97F5','#E4BE5C','#2E7A52','#243F86','#82B6F8','#E5896A'];
+    for(let i=0;i<64;i++){const s=document.createElement('i');const ang=Math.random()*360,dist=60+Math.random()*180;
       s.style.setProperty('--x',Math.round(Math.cos(ang*Math.PI/180)*dist)+'px');
       s.style.setProperty('--y',Math.round(Math.sin(ang*Math.PI/180)*dist)+'px');
-      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.18).toFixed(2)+'s';c.appendChild(s);}}
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';c.appendChild(s);}
+    const em=ov.querySelector('.rv-emojis');
+    const set=cat?['🐱','😱','🔥','💀','⚠️','😾','🙀','💣']:spec?['🎁','🎉','✨','💎','🥳','🤑','👑','🔥']:['🔥','💪','🚀','⚡','🎯','💰','🏆','😤','💯'];
+    for(let i=0;i<26;i++){const s=document.createElement('i');s.textContent=set[Math.floor(Math.random()*set.length)];
+      s.style.left=(Math.random()*100).toFixed(0)+'%';s.style.animationDuration=(1.1+Math.random()*0.9).toFixed(2)+'s';
+      s.style.animationDelay=(Math.random()*0.3).toFixed(2)+'s';s.style.setProperty('--r',(Math.random()*720-360).toFixed(0)+'deg');
+      s.style.fontSize=(20+Math.random()*16).toFixed(0)+'px';em.appendChild(s);}
+  }
   const close=()=>ov.remove();
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
   document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
+}
+let bzMinDate=null, bzDraft='';   // свёрнутый блиц-виджет и черновик отчёта
+function renderBlitzWidget(){
+  let w=document.getElementById('blitzWidget');
+  const b=blitzForToday();
+  if(!blitzActive()||!b){ if(w)w.remove(); return; }
+  const prev=(document.getElementById('bzReport')||{}).value||bzDraft;
+  if(!w){w=document.createElement('div');w.id='blitzWidget';document.body.appendChild(w);}
+  if(bzMinDate===b.edate){   // свёрнут — только плашка с таймером
+    w.className='min';
+    w.innerHTML='<button class="bw-x" data-action="bz-max" title="Развернуть">⚡ Блиц <span class="bw-timer" id="bzTimer"></span> ▾</button>';
+    updateBlitzTimer(); return;
+  }
+  w.className='';
+  const bz=splitTitle(b.body);
+  let h='<div class="bw-top"><div class="bw-head">⚡ БЛИЦ-ЗАДАНИЕ</div><button class="bw-x" data-action="bz-min" title="Свернуть">свернуть ▴</button></div>'+(bz.title?'<div class="ttitle">'+esc(bz.title)+'</div>':'')+'<div class="bw-task">'+esc(bz.text)+'</div>';
+  if(b.winner_manager_id){
+    const me=AUTH.role==='manager'&&AUTH.manager_id===b.winner_manager_id;
+    h+='<div class="bw-winner">🏆 Зачтено первым: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
+  }else if(AUTH.role==='manager'){
+    const mine=(S.blitz_sub||[]).find(x=>x.edate===b.edate && x.manager_id===AUTH.manager_id);
+    if(mine)h+='<div class="bw-winner" style="background:var(--plum-soft);color:var(--plum)">✅ Отчёт отправлен, ждёт проверки руководителя</div>';
+    h+='<textarea id="bzReport" rows="2" placeholder="Что сделал (коротко)">'+esc(mine?mine.report:'')+'</textarea>'
+      +'<button class="btn good sm" data-action="blitz-submit" style="width:100%;justify-content:center">'+(mine?'Обновить отчёт':'Отправить на проверку')+'</button>';
+  }else{
+    h+='<div class="bw-hint">Пришли отчёт за 30 минут. Кто сделает правильно первым — тому руководитель начислит +1 балл. Войди, чтобы участвовать.</div>';
+  }
+  h+='<div class="bw-timer" id="bzTimer"></div>';
+  w.innerHTML=h;
+  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev; bzDraft='';
+  updateBlitzTimer();
+}
+function updateBlitzTimer(){
+  const el=document.getElementById('bzTimer'); if(!el)return;
+  const b=blitzForToday(); if(!b)return;
+  if(b.started_at && Date.now()<new Date(b.started_at).getTime()+30*60000){
+    let left=Math.floor((new Date(b.started_at).getTime()+30*60000-Date.now())/1000); if(left<0)left=0;
+    el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0'); return;
+  }
+  if(S.settings&&S.settings.today_override){el.textContent='тест-режим · окно открыто'; return}
+  const y=yektNow(),sec=y.getHours()*3600+y.getMinutes()*60+y.getSeconds(),st=parseHHMM(b.start_time);
+  let left=(st*60+30*60)-sec; if(left<0)left=0;
+  el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0');
+}
+function maybeShowBlitzPopup(){
+  const b=blitzForToday(); if(!b||!blitzActive())return;
+  const key='bzShown_'+b.edate+'_'+(b.started_at||'sched'); let shown=false;
+  try{shown=localStorage.getItem(key)==='1'}catch(e){}
+  if(shown||document.querySelector('.blitz-pop'))return;
+  try{localStorage.setItem(key,'1')}catch(e){}
+  showBlitzPopup(b);
+}
+function showBlitzPopup(b){
+  const ov=document.createElement('div');ov.className='reveal-ov rv-boom blitz-pop';
+  ov.innerHTML='<div class="reveal-modal rv-big" style="border-color:#E4BE5C">'
+    +'<div class="rv-hype" style="background:linear-gradient(90deg,#E4A11E,#C15E17);-webkit-background-clip:text;background-clip:text;color:transparent">⚡ БЛИЦ-ЗАДАНИЕ</div>'
+    +'<div class="rv-orb" style="background:radial-gradient(120% 120% at 30% 20%,#F0B429,#C15E17)">⚡</div>'
+    +'<div class="rv-content"><div class="rv-eyebrow">30 минут · первый забирает +1 балл</div>'
+    +(splitTitle(b.body).title?'<div class="ttitle" style="font-size:15px">'+esc(splitTitle(b.body).title)+'</div>':'')+'<div class="rv-task">'+esc(splitTitle(b.body).text)+'</div>'
+    +'<button class="btn primary rv-go" data-action="close-reveal">'+(AUTH.role==='manager'?'В БОЙ ⚡':'Понятно')+'</button></div>'
+    +'<div class="rv-confetti"></div></div>';
+  document.body.appendChild(ov);
+  playFileSound('./blitz.mp3',synthChime);
+  const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  if(!reduce){fireworks(ov,2400);const c=ov.querySelector('.rv-confetti'),cols=['#F0B429','#E4BE5C','#C15E17','#FFD966','#E5896A'];
+    for(let i=0;i<44;i++){const s=document.createElement('i');const a=Math.random()*360,d=60+Math.random()*170;
+      s.style.setProperty('--x',Math.round(Math.cos(a*Math.PI/180)*d)+'px');s.style.setProperty('--y',Math.round(Math.sin(a*Math.PI/180)*d)+'px');
+      s.style.background=cols[i%cols.length];s.style.animationDelay=(Math.random()*0.25).toFixed(2)+'s';c.appendChild(s);}}
+  const close=()=>ov.remove();
+  ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
+}
+function updateCatTimers(){
+  document.querySelectorAll('.catgive[data-deadline]').forEach(b=>{
+    const left=(+b.dataset.deadline)-Date.now();
+    if(left<=0){b.outerHTML='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';return;}
+    const s=Math.floor(left/1000);
+    b.textContent='🫳 Скинуть кота другому · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  });
+}
+function blitzTick(){
+  updateBlitzTimer(); updateCatTimers();
+  const active=blitzActive(),w=document.getElementById('blitzWidget');
+  if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
+  else if(w){ w.remove(); }
+}
+function wireLogin(){
+  const lp=$('#loginPin'), ln=$('#loginName'), ap=$('#adminPin');
+  const tryMgr=()=>{ if(ln&&ln.value&&/^\d{4}$/.test((lp&&lp.value)||'')){const b=$('[data-action="do-login-mgr"]');if(b)b.click();} };
+  if(lp){lp.addEventListener('input',tryMgr);
+    lp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=$('[data-action="do-login-mgr"]');if(b)b.click();}});}
+  if(ln)ln.addEventListener('change',tryMgr);
+  if(ap)ap.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const b=$('[data-action="do-login-admin"]');if(b)b.click();}});
 }
 function toggleTheme(){const el=document.documentElement,cur=el.getAttribute('data-theme'),
   sysDark=matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches;
@@ -773,7 +1468,7 @@ try{const s=localStorage.getItem('advTheme');if(s)document.documentElement.setAt
 function start(){
   if(sb)return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  loadAll().then(()=>{render();subscribeRealtime()}).catch(err=>{
+  loadAll().then(()=>{render();subscribeRealtime();setInterval(blitzTick,1000)}).catch(err=>{
     console.error(err);
     if(loading){
       root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Не удалось подключиться к базе</h2>'

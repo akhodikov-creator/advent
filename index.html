@@ -193,6 +193,10 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .rev-body .rt{font-size:14px;line-height:1.5;white-space:pre-wrap;margin:6px 0}
 .rev-body a{color:var(--brand-2);font-weight:600;word-break:break-all}
 .rev-thumb{max-width:120px;max-height:90px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in}
+video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
+.shot-media{max-height:360px;background:#000}
+.shot-audio{width:100%;margin-top:6px}
+.shot-file{display:inline-block;margin-top:4px;font-size:13px;font-weight:700;color:var(--accent,#2563eb)}
 .rev-actions{display:flex;flex-direction:column;gap:6px}
 .login-wrap{max-width:420px;margin:6vh auto 0}
 .login-card{padding:26px}
@@ -368,7 +372,7 @@ if(!UI.poolDir)UI.poolDir='СРБ';
 /* ---------- данные с сервера ---------- */
 let S = {settings:null, managers:[], entries:[], reg:[], sp:[], cat:[], blitz:[], blitz_sub:[]};
 let byMgr = {};   // managerId -> {dayIndex -> entry}
-let loading=true, pendingShots={};
+let loading=true, pendingShots={}, pendingPrev={}, uploading=false;
 
 /* ---------- helpers ---------- */
 const WD=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
@@ -502,7 +506,8 @@ function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({setting
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
   if(c&&c.settings){S.settings=c.settings;S.managers=c.managers||[];S.reg=c.reg||[];S.sp=c.sp||[];S.cat=c.cat||[];S.blitz=c.blitz||[];S.blitz_sub=c.blitz_sub||[];S.entries=c.entries||[];rebuildIndex();loading=false;return true}}catch(e){}return false}
 let reloadT;
-function isEditing(){const el=document.activeElement; if(!el)return false;
+function isEditing(){if(uploading)return true;   // идёт загрузка файла — не перерисовываем
+  const el=document.activeElement; if(!el)return false;
   const tag=el.tagName;
   return tag==='TEXTAREA' || tag==='SELECT' || (tag==='INPUT' && !/^(button|submit|checkbox|radio|range|color|file)$/i.test(el.type||'text'));}
 function renderBg(){ if(!isEditing())render(); }   // не перерисовываем, пока пользователь печатает
@@ -531,7 +536,7 @@ async function act(fn,args,okMsg){
 }
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
-  empty:'Заполните отчёт: текст, ссылку или скриншот',bad:'Некорректно',
+  empty:'Заполните отчёт: текст, ссылку или файл',bad:'Некорректно',
   deadline:'После 20:00 по Екатеринбургу отчёт сдать нельзя',
   no_reassign:'Переназначить кота можно только один раз',
   bad_target:'Этому участнику нельзя передать — у него уже есть бонус или кот в этот день',
@@ -552,10 +557,30 @@ function compress(file){
       c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
 }
+/* Вложение к отчёту: картинки сжимаем, остальное (видео, аудио, документы) грузим как есть, до 50 МБ */
+const MAX_UPLOAD=50*1024*1024;
+const UPLOAD_ACCEPT='image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
+function fileKind(u){const x=String(u||'').split('?')[0].toLowerCase();
+  if(/\.(jpe?g|png|gif|webp|bmp)$/.test(x))return 'img';
+  if(/\.(mp4|mov|webm|m4v|3gp)$/.test(x))return 'video';
+  if(/\.(mp3|m4a|wav|ogg|oga|aac|amr|opus)$/.test(x))return 'audio';
+  return 'file';}
+function fmtMB(n){return (n/1048576).toFixed(n<10485760?1:0).replace('.',',')+' МБ'}
+function mediaHTML(url,cls,zoom){const k=fileKind(url),u=esc(url),ext=esc((String(url).split('?')[0].split('.').pop()||'').toUpperCase());
+  const open='<a class="shot-file" href="'+u+'" target="_blank" rel="noopener">';
+  if(k==='img')return '<img class="'+cls+'" loading="lazy" decoding="async" src="'+u+'"'+(zoom?' data-action="zoom" style="cursor:zoom-in"':'')+'>';
+  if(k==='video')return '<video class="'+cls+' shot-media" src="'+u+'" controls preload="metadata" playsinline></video><div>'+open+'⬇️ Скачать видео ('+ext+')</a></div>';
+  if(k==='audio')return '<audio class="shot-audio" src="'+u+'" controls preload="none"></audio><div>'+open+'⬇️ Скачать запись ('+ext+')</a></div>';
+  return open+'📄 Открыть файл ('+ext+')</a>';}
 async function uploadShot(entryId,file){
-  const blob=await compress(file);
-  const path=entryId+'/'+Date.now()+'.jpg';
-  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:'image/jpeg',upsert:true});
+  let blob=file, type=file.type||'application/octet-stream', ext='';
+  if(/^image\/(jpeg|png|webp|bmp)$/.test(file.type)){   // скриншоты/фото — сжимаем, как раньше
+    try{blob=await compress(file);type='image/jpeg';ext='jpg'}catch(e){blob=file}
+  }
+  if(!ext)ext=((file.name||'').split('.').pop()||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+  if(blob.size>MAX_UPLOAD)throw new Error('too_big');
+  const path=entryId+'/'+Date.now()+'.'+ext;
+  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true});
   if(error)throw error;
   return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
 }
@@ -837,15 +862,16 @@ function reportForm(e,btnLabel){
     +'<textarea id="rt_'+id+'" rows="3" placeholder="Что сделал: результат, клиент, сумма…">'+esc(e.report_text||'')+'</textarea></div>'
     +'<div class="field" style="margin:0"><label>Ссылка на подтверждение — необязательно</label>'
     +'<input id="rl_'+id+'" placeholder="https://…" value="'+esc(e.report_link||'')+'"></div>'
-    +'<label class="filelabel">📎 Скриншот<input type="file" class="shotinput" data-eid="'+id+'" accept="image/*"></label>'
-    +'<div id="sp_'+id+'">'+(e.screenshot_url?'<img class="shot-prev" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'">':'')+'</div>'
+    +'<label class="filelabel">📎 Скриншот/видео<input type="file" class="shotinput" data-eid="'+id+'" accept="'+UPLOAD_ACCEPT+'"></label>'
+    +'<div class="note" style="margin-top:-2px">Фото, видео, аудио, PDF, Word, Excel — до 50 МБ. Больше — загрузи в облако и вставь ссылку выше.</div>'
+    +'<div id="sp_'+id+'">'+(pendingPrev[id]||(e.screenshot_url?mediaHTML(e.screenshot_url,'shot-prev',false):''))+'</div>'
     +'<button class="btn good" data-action="submit-report" data-eid="'+id+'" style="margin-top:4px">'+btnLabel+'</button>';
 }
 function reportView(e){
   let h='';
   if(e.report_text)h+='<div class="rt" style="white-space:pre-wrap;font-size:14px;margin-top:6px">'+esc(e.report_text)+'</div>';
   if(e.report_link)h+='<div style="margin-top:6px">'+linkify(e.report_link)+'</div>';
-  if(e.screenshot_url)h+='<img class="shot-prev" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'" data-action="zoom" style="margin-top:8px;cursor:zoom-in">';
+  if(e.screenshot_url)h+='<div style="margin-top:8px">'+mediaHTML(e.screenshot_url,'shot-prev',true)+'</div>';
   return h||'<div class="note">— отчёт не заполнен —</div>';
 }
 function showDayModal(mgrId,dayIdx){
@@ -879,7 +905,7 @@ function viewReview(){
       +(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
       +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
       +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
-      +(e.screenshot_url?'<img class="rev-thumb" loading="lazy" decoding="async" src="'+esc(e.screenshot_url)+'" data-action="zoom">':'')
+      +(e.screenshot_url?mediaHTML(e.screenshot_url,'rev-thumb',true):'')
       +'<textarea id="revc_'+e.id+'" class="revcomment" rows="2" placeholder="Комментарий менеджеру (необязательно) — увидит в кабинете"></textarea>'
       +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
       +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
@@ -1094,11 +1120,16 @@ document.addEventListener('click',async e=>{
     const text=($('#rt_'+eid)&&$('#rt_'+eid).value||'').trim();
     const link=($('#rl_'+eid)&&$('#rl_'+eid).value||'').trim();
     let shot=null;
-    if(pendingShots[eid]){t.disabled=true;t.textContent='Загружаю скриншот…';
-      try{shot=await uploadShot(eid,pendingShots[eid])}catch(err){t.disabled=false;return toast('Не удалось загрузить скриншот')}}
+    if(pendingShots[eid]){const f=pendingShots[eid];t.disabled=true;
+      t.textContent=f.size>5242880?'Загружаю файл ('+fmtMB(f.size)+')… не закрывай страницу':'Загружаю файл…';
+      uploading=true;
+      try{shot=await uploadShot(eid,f)}
+      catch(err){uploading=false;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
+        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Не удалось загрузить файл. Проверь интернет или пришли ссылкой')}
+      uploading=false}
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
-    if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или скриншот')}
-    delete pendingShots[eid];
+    if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или файл')}
+    delete pendingShots[eid]; delete pendingPrev[eid];
     return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
   }
 
@@ -1149,9 +1180,15 @@ document.addEventListener('change',e=>{
 });
 function onShotPick(e){
   const inp=e.target, eid=inp.dataset.eid, f=inp.files&&inp.files[0]; if(!f||!eid)return;
+  if(f.size>MAX_UPLOAD){inp.value='';return toast('Файл '+fmtMB(f.size)+' — больше 50 МБ. Загрузи его в облако и вставь ссылку')}
   pendingShots[eid]=f;
-  const url=URL.createObjectURL(f), box=$('#sp_'+eid);
-  if(box)box.innerHTML='<img class="shot-prev" src="'+url+'">';
+  const url=URL.createObjectURL(f), box=$('#sp_'+eid), t=f.type||'';
+  const info='<div class="note">📎 '+esc(f.name||'файл')+' · '+fmtMB(f.size)+' — загрузится при отправке</div>';
+  pendingPrev[eid]=/^image\//.test(t)?'<img class="shot-prev" src="'+url+'">'
+    :/^video\//.test(t)?'<video class="shot-prev shot-media" src="'+url+'" controls preload="metadata" playsinline></video>'+info
+    :/^audio\//.test(t)?'<audio class="shot-audio" src="'+url+'" controls></audio>'+info
+    :info;
+  if(box)box.innerHTML=pendingPrev[eid];
 }
 function compressSquare(file,size){
   return new Promise((res,rej)=>{const img=new Image(),url=URL.createObjectURL(file);
