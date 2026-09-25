@@ -307,7 +307,14 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 .bw-hint{font-size:12px;color:var(--muted)}
 .bw-timer{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:right}
 #blitzWidget textarea{font-size:13px}
-@media(max-width:720px){#blitzWidget{top:8px;right:8px;left:8px;width:auto}}
+.bw-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bw-x{border:0;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 6px;border-radius:6px;white-space:nowrap}
+.bw-x:hover{background:var(--surface-2)}
+#blitzWidget.min{width:auto;padding:6px 8px}
+#blitzWidget.min .bw-x{color:#B07A0E;font-size:13px;display:flex;gap:6px;align-items:center}
+#blitzWidget.min .bw-timer{font-size:12px}
+/* на телефоне — внизу экрана, чтобы не закрывать шапку с кнопками входа/выхода */
+@media(max-width:720px){#blitzWidget{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:55vh;overflow:auto}#blitzWidget.min{left:auto}}
 .blist{display:flex;flex-direction:column;gap:8px}
 .brow{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
@@ -445,15 +452,22 @@ function rankInfo(m){
     .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
   const idx=all.findIndex(r=>r.m.id===m.id);
   if(idx<0)return null;
-  return {rank:idx+1, total:all.length, points:all[idx].s.points, above: idx>0?all[idx-1]:null};
+  const pl=places(all,mkey), rank=pl[idx], tied=all.filter(r=>mkey(r)===mkey(all[idx])).length-1;
+  return {rank, total:all.length, points:all[idx].s.points, tied, above: rank>1?all[rank-2]:null, aboveRank: rank>1?pl[rank-2]:0};
 }
+// Равные баллы (и бонусы) — общее место: 1, 2, 2, 4…
+const mkey=r=>r.s.points+'/'+r.s.gifts;
+function places(arr,key){const p=[];arr.forEach((r,i)=>p.push(i>0&&key(r)===key(arr[i-1])?p[i-1]:i+1));return p}
 function rankStrip(m,isOwner){
   const ri=rankInfo(m); if(!ri)return '';
   const who=isOwner?'Ты':esc((m.full_name||'').split(' ')[0]);
-  if(ri.rank===1) return '<div class="rankbar top">🥇 '+who+(isOwner?' на 1 месте — держи оборону!':' — 1 место 🔥')+'</div>';
+  if(ri.rank===1&&ri.points<=0)   // у лидеров 0 баллов — никакого «1 места» ещё нет
+    return '<div class="rankbar">🚀 '+(isOwner?'Лидеров пока нет — первый балл выведет тебя на 1 место!':who+' — баллов пока нет, лидеров тоже')+'</div>';
+  const withN=ri.tied?' (вместе с ещё '+ri.tied+')':'';
+  if(ri.rank===1) return '<div class="rankbar top">🥇 '+who+(isOwner?' на 1 месте'+withN+' — держи оборону!':' — 1 место'+withN+' 🔥')+'</div>';
   const gap=ri.above.s.points - ri.points;
-  const tail=gap>0?('+'+gap+' '+ballWord(gap)):'вровень — вырвись вперёд!';
-  return '<div class="rankbar">📈 '+who+(isOwner?' на ':' — ')+ri.rank+'-м месте из '+ri.total+' · до '+(ri.rank-1)+'-го места '+tail+'</div>';
+  const tail=gap>0?('+'+gap+' '+ballWord(gap)):'вровень по баллам — обгони по бонусам!';
+  return '<div class="rankbar">📈 '+who+(isOwner?' на ':' — на ')+ri.rank+'-м месте из '+ri.total+withN+' · до '+ri.aboveRank+'-го места '+tail+'</div>';
 }
 function contestInfo(){
   const eff=effToday(),wds=workdays(),idx=wds.indexOf(eff),elapsed=wds.filter(d=>d<=eff).length;
@@ -648,9 +662,10 @@ function viewBoard(){
   return out;
 }
 function lbPeople(){
-  return '<div class="card lb">'+standings().map((r,i)=>{
-    const lead=(r.s?r.s.points:r.avg)>0, medal=lead?['🥇','🥈','🥉'][i]:null;   // медали только тем, у кого есть баллы
-    return '<div class="lb-row '+(i<3&&lead?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+  const rows=standings(), pl=places(rows,mkey);
+  return '<div class="card lb">'+rows.map((r,i)=>{
+    const lead=r.s.points>0, medal=lead?['🥇','🥈','🥉'][pl[i]-1]:null;   // медали только тем, у кого есть баллы; при равенстве — общее место
+    return '<div class="lb-row '+(pl[i]<=3&&lead?'top':'')+'"><div class="rank">'+(medal||pl[i])+'</div>'
       +'<div class="who">'+avaTag(r.m)+'<div style="min-width:0">'
       +'<button class="nm" data-action="open-cab" data-id="'+r.m.id+'">'+esc(r.m.full_name)+'</button>'
       +'<div class="tm">'+esc([r.m.direction,r.m.team].filter(Boolean).join(' · '))+' · сделано '+r.s.doneDays+'/'+r.s.elapsed+(r.s.pending?' · на проверке '+r.s.pending:'')+'</div></div></div>'
@@ -659,9 +674,10 @@ function lbPeople(){
   }).join('')+'</div>';
 }
 function lbTeam(){
-  return '<div class="card lb">'+teamStandings().map((r,i)=>{
-    const lead=(r.s?r.s.points:r.avg)>0, medal=lead?['🥇','🥈','🥉'][i]:null;   // медали только тем, у кого есть баллы
-    return '<div class="lb-row '+(i<3&&lead?'top':'')+'"><div class="rank">'+(medal||(i+1))+'</div>'
+  const rows=teamStandings(), pl=places(rows,r=>r.avg.toFixed(3)+'/'+r.gavg.toFixed(3));
+  return '<div class="card lb">'+rows.map((r,i)=>{
+    const lead=r.avg>0, medal=lead?['🥇','🥈','🥉'][pl[i]-1]:null;   // медали только тем, у кого есть баллы
+    return '<div class="lb-row '+(pl[i]<=3&&lead?'top':'')+'"><div class="rank">'+(medal||pl[i])+'</div>'
       +'<div class="who"><div class="ava" style="background:'+AVCOL[i%AVCOL.length]+'">'+esc(r.team[0]||'—')+'</div>'
       +'<div><div class="nm">'+(UI.dirFilter==='all'?esc(r.dir)+' · ':'')+'«'+esc(r.team)+'»</div><div class="tm">'+r.n+' чел. · всего '+r.points+' '+ballWord(r.points)+' · сделано задач '+r.done+'</div></div></div>'
       +'<div class="gifts">'+(r.gifts?('🎁 '+r.gifts):'')+'</div>'
@@ -1032,6 +1048,8 @@ document.addEventListener('click',async e=>{
     await openAndReveal(un[0].id);
     return;
   }
+  if(a==='bz-min'){const ta=$('#bzReport');if(ta)bzDraft=ta.value;const b=blitzForToday();bzMinDate=b?b.edate:null;renderBlitzWidget();return}
+  if(a==='bz-max'){bzMinDate=null;renderBlitzWidget();return}
   if(a==='blitz-submit'){
     const rep=($('#bzReport')&&$('#bzReport').value||'').trim();
     if(!rep)return toast('Напиши пару слов — что сделал');
@@ -1311,14 +1329,21 @@ function showRevealModal(e){
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
   document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
 }
+let bzMinDate=null, bzDraft='';   // свёрнутый блиц-виджет и черновик отчёта
 function renderBlitzWidget(){
   let w=document.getElementById('blitzWidget');
   const b=blitzForToday();
   if(!blitzActive()||!b){ if(w)w.remove(); return; }
-  const prev=(document.getElementById('bzReport')||{}).value||'';
+  const prev=(document.getElementById('bzReport')||{}).value||bzDraft;
   if(!w){w=document.createElement('div');w.id='blitzWidget';document.body.appendChild(w);}
+  if(bzMinDate===b.edate){   // свёрнут — только плашка с таймером
+    w.className='min';
+    w.innerHTML='<button class="bw-x" data-action="bz-max" title="Развернуть">⚡ Блиц <span class="bw-timer" id="bzTimer"></span> ▾</button>';
+    updateBlitzTimer(); return;
+  }
+  w.className='';
   const bz=splitTitle(b.body);
-  let h='<div class="bw-head">⚡ БЛИЦ-ЗАДАНИЕ</div>'+(bz.title?'<div class="ttitle">'+esc(bz.title)+'</div>':'')+'<div class="bw-task">'+esc(bz.text)+'</div>';
+  let h='<div class="bw-top"><div class="bw-head">⚡ БЛИЦ-ЗАДАНИЕ</div><button class="bw-x" data-action="bz-min" title="Свернуть">свернуть ▴</button></div>'+(bz.title?'<div class="ttitle">'+esc(bz.title)+'</div>':'')+'<div class="bw-task">'+esc(bz.text)+'</div>';
   if(b.winner_manager_id){
     const me=AUTH.role==='manager'&&AUTH.manager_id===b.winner_manager_id;
     h+='<div class="bw-winner">🏆 Зачтено первым: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
@@ -1332,7 +1357,7 @@ function renderBlitzWidget(){
   }
   h+='<div class="bw-timer" id="bzTimer"></div>';
   w.innerHTML=h;
-  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev;
+  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev; bzDraft='';
   updateBlitzTimer();
 }
 function updateBlitzTimer(){
