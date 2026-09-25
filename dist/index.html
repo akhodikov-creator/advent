@@ -318,7 +318,11 @@ video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 #blitzWidget.min .bw-x{color:#B07A0E;font-size:13px;display:flex;gap:6px;align-items:center}
 #blitzWidget.min .bw-timer{font-size:12px}
 /* на телефоне — внизу экрана, чтобы не закрывать шапку с кнопками входа/выхода */
-@media(max-width:720px){#blitzWidget{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:55vh;overflow:auto}#blitzWidget.min{left:auto}}
+@media(max-width:720px){#blitzWidget{top:auto;bottom:62px;right:8px;left:8px;width:auto;max-height:55vh;overflow:auto}#blitzWidget.min{left:auto}}
+#netbar{position:fixed;top:0;left:0;right:0;z-index:90;background:#FFF4D6;color:#7A5200;border-bottom:1px solid #E4BE5C;font-size:13px;font-weight:600;text-align:center;padding:6px 12px}
+#helpBtn{position:fixed;right:14px;bottom:14px;z-index:64;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--sh-lg)}
+#helpBtn:hover{border-color:#E26A5A;color:#C0392B}
+@media(max-width:720px){#helpBtn{right:10px;bottom:10px;padding:8px 12px;font-size:12px}}
 .blist{display:flex;flex-direction:column;gap:8px}
 .brow{display:grid;grid-template-columns:150px 1fr auto auto;gap:8px;align-items:center}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
@@ -407,12 +411,22 @@ function pastDeadline(){
 }
 function blitzForToday(){const eff=effToday();return (S.blitz||[]).find(b=>b.edate===eff && b.body && b.body.trim())}
 function parseHHMM(t){const p=((t||'15:00')+'').split(':');return (+p[0])*60+(+p[1]||0)}
-function blitzWindowNow(){
+// Ручной запуск считается, только если он был в этот же день (по ЕКБ) — или в тест-режиме
+function blitzStartMs(b){
+  if(!b||!b.started_at)return null;
+  const t=new Date(b.started_at).getTime();
+  if(S.settings&&S.settings.today_override)return t;
+  const y=new Date(t+new Date(t).getTimezoneOffset()*60000+5*3600000);
+  const iso=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');
+  return iso===b.edate?t:null;
+}
+function blitzWindowNow(){   // окно — ровно 30 минут от старта, потом виджет исчезает
   const b=blitzForToday(); if(!b)return false;
-  if(b.started_at){const t=new Date(b.started_at).getTime(); if(Date.now()>=t && Date.now()<t+30*60000)return true;} // ручной запуск
-  if(S.settings&&S.settings.today_override)return true;    // тест-режим
+  const t=blitzStartMs(b);
+  if(t!==null)return Date.now()>=t && Date.now()<t+30*60000;    // был ручной запуск — только его окно
+  if(S.settings&&S.settings.today_override)return true;          // тест-режим без запуска
   const y=yektNow(),m=y.getHours()*60+y.getMinutes(),st=parseHHMM(b.start_time);
-  return m>=st && m<st+30;                                 // расписание start_time..+30мин ЕКБ
+  return m>=st && m<st+30;                                       // расписание start_time..+30мин ЕКБ
 }
 function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
 function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
@@ -481,26 +495,39 @@ function contestInfo(){
 function pendingCount(){let n=0;S.entries.forEach(e=>{if(e.review==='pending')n++});return n}
 
 /* ---------- сервер ---------- */
-async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args);if(error)throw error;return data}
-async function loadAll(){
-  try{
-    const data=await rpc('bootstrap');           // один запрос вместо шести
-    S.settings=data.settings; S.managers=data.managers||[]; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
-  }catch(err){                                    // резерв, если функции bootstrap ещё нет в базе
-    const [st,mg,rg,sp,ct,bz,bs,en]=await Promise.all([
-      sb.from('app_settings').select('*').eq('id',1).single(),
-      sb.from('managers').select('id,full_name,team,seat,active,direction,avatar_url').eq('active',true).order('seat'),
-      sb.from('pool_regular').select('*').order('ord'),
-      sb.from('pool_special').select('*').order('ord'),
-      sb.from('pool_cat').select('*').order('ord'),
-      sb.from('blitz').select('*'),
-      sb.from('blitz_sub').select('*'),
-      sb.from('entries').select('*')
-    ]);
-    if(st.error)throw st.error;
-    S.settings=st.data; S.managers=mg.data||[]; S.reg=rg.data||[]; S.sp=sp.data||[]; S.cat=(ct&&ct.data)||[]; S.blitz=(bz&&bz.data)||[]; S.blitz_sub=(bs&&bs.data)||[]; S.entries=en.data||[];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
+// Вызов функции на сервере: с таймаутом и (для безопасных вызовов) повтором при сбое сети
+async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?3:1;let last;
+  for(let i=0;i<tries;i++){
+    try{const{data,error}=await withTimeout(sb.rpc(fn,args),opt.timeout||25000);if(error)throw error;return data}
+    catch(e){last=e;if(i<tries-1)await sleep(700*(i+1)+Math.random()*900)}
   }
-  rebuildIndex(); loading=false; lastLoadAt=Date.now(); cacheSave();
+  throw last}
+// Загрузка всех данных. Если сервер не ответил или ответил пустым списком участников —
+// НЕ затираем то, что уже на экране (раньше из-за этого «пропадали все менеджеры»).
+let loadP=null;
+function loadAll(){
+  if(loadP)return loadP;                          // уже грузим — ждём тот же запрос
+  loadP=(async()=>{
+    try{
+      const data=await rpc('bootstrap',null,{retry:true,timeout:20000});
+      if(!data||!data.settings||!Array.isArray(data.managers))throw new Error('bootstrap: пустой ответ');
+      if(!data.managers.length&&S.managers&&S.managers.length)throw new Error('bootstrap: нет участников — игнорируем');
+      S.settings=data.settings; S.managers=data.managers; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
+      rebuildIndex(); loading=false; lastLoadAt=Date.now(); setNet(true); cacheSave();
+    }catch(e){setNet(false);throw e}
+    finally{loadP=null}
+  })();
+  return loadP;
+}
+// Полоска «нет связи» + автоповтор, пока сервер не ответит
+let netRetryT=null;
+function setNet(ok){
+  let el=document.getElementById('netbar');
+  if(ok){if(el)el.remove();clearTimeout(netRetryT);netRetryT=null;return}
+  if(!el){el=document.createElement('div');el.id='netbar';el.textContent='⚠️ Сервер отвечает с задержкой — показаны последние данные, пробуем снова…';document.body.appendChild(el)}
+  if(!netRetryT)netRetryT=setTimeout(()=>{netRetryT=null;loadAll().then(renderBg).catch(()=>{})},6000+Math.random()*6000);
 }
 function cacheSave(){try{localStorage.setItem('advCache',JSON.stringify({settings:S.settings,managers:S.managers,reg:S.reg,sp:S.sp,cat:S.cat,blitz:S.blitz,blitz_sub:S.blitz_sub,entries:S.entries}))}catch(e){}}
 function cacheLoad(){try{const c=JSON.parse(localStorage.getItem('advCache'));
@@ -512,17 +539,33 @@ function isEditing(){if(uploading)return true;   // идёт загрузка ф
   return tag==='TEXTAREA' || tag==='SELECT' || (tag==='INPUT' && !/^(button|submit|checkbox|radio|range|color|file)$/i.test(el.type||'text'));}
 function renderBg(){ if(!isEditing())render(); }   // не перерисовываем, пока пользователь печатает
 let lastLoadAt=0;
-function scheduleReload(){if(document.hidden)return;clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),1500)}
+function scheduleReload(){if(document.hidden)return;clearTimeout(reloadT);reloadT=setTimeout(()=>loadAll().then(renderBg).catch(()=>{}),1500+Math.random()*4000)}
+let rtRenderT=null;
+function applyChange(table,p){      // строка пришла по реалтайму — кладём её в данные на месте
+  try{
+    const n=p.new||{}, o=p.old||{}, del=p.eventType==='DELETE';
+    const keyOf={entries:r=>r.id, blitz:r=>r.edate, blitz_sub:r=>r.edate+'|'+r.manager_id}[table];
+    const arr=S[table]=S[table]||[], k=keyOf(del?o:n);
+    if(k==null||k.indexOf&&k.indexOf('undefined')>=0){scheduleReload();return}
+    const i=arr.findIndex(r=>keyOf(r)===k);
+    if(del){if(i>=0)arr.splice(i,1)} else if(i>=0)arr[i]=Object.assign({},arr[i],n); else arr.push(n);
+    if(table==='entries')rebuildIndex(); else statsCache={};
+    clearTimeout(rtRenderT);rtRenderT=setTimeout(()=>{renderBg();cacheSave()},400);
+  }catch(e){scheduleReload()}
+}
 document.addEventListener('visibilitychange',()=>{   // вернулся на вкладку — подтянуть свежее (не чаще раза в 15 сек)
-  if(!document.hidden&&sb&&Date.now()-lastLoadAt>15000)loadAll().then(renderBg).catch(()=>{});
+  if(!document.hidden&&sb&&Date.now()-lastLoadAt>30000)loadAll().then(renderBg).catch(()=>{});
 });
 function subscribeRealtime(){
   sb.channel('advent')
-    .on('postgres_changes',{event:'*',schema:'public',table:'entries'},scheduleReload)
+    .on('postgres_changes',{event:'*',schema:'public',table:'entries'},p=>applyChange('entries',p))
+    .on('postgres_changes',{event:'*',schema:'public',table:'blitz'},p=>applyChange('blitz',p))
+    .on('postgres_changes',{event:'*',schema:'public',table:'blitz_sub'},p=>applyChange('blitz_sub',p))
     .on('postgres_changes',{event:'*',schema:'public',table:'managers'},scheduleReload)
     .on('postgres_changes',{event:'*',schema:'public',table:'app_settings'},scheduleReload)
     .subscribe();
-  setInterval(()=>{if(!document.hidden)loadAll().then(renderBg).catch(()=>{})},25000); // подстраховка
+  // подстраховка: полная сверка раз в ~minute (со случайным сдвигом, чтобы 46 страниц не били сервер одновременно)
+  (function poll(){setTimeout(()=>{if(!document.hidden)loadAll().then(renderBg).catch(()=>{});poll()},50000+Math.random()*20000)})();
 }
 
 let toastT;
@@ -531,8 +574,8 @@ function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el
 async function act(fn,args,okMsg){
   try{const r=await rpc(fn,args);
     if(r&&r.ok===false){toast(errMsg(r.err));return null}
-    await loadAll();render(); if(okMsg)toast(okMsg); return r;
-  }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed/i.test(e.message);toast(net?'Нет связи с базой, попробуйте ещё раз':'Ошибка: '+e.message);return null}
+    try{await loadAll()}catch(e){} render(); if(okMsg)toast(okMsg); return r;
+  }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed|timeout/i.test(e.message);toast(net?'Сервер не ответил — попробуйте ещё раз через пару секунд':'Ошибка: '+e.message);return null}
 }
 function errMsg(code){return({auth:'Нужно войти заново',forbidden:'Можно менять только свои ячейки',
   not_today:'Открыть/сдать можно только сегодняшнюю ячейку',notfound:'Запись не найдена',
@@ -544,7 +587,9 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
   no_blitz:'Блиц-задание сейчас не активно',
   blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)',
   reassign_expired:'Передать кота можно только 30 минут после открытия',
-  no_body:'Сначала впиши задание для этого дня'})[code]||'Не получилось'}
+  no_body:'Сначала впиши задание для этого дня',
+  already:'Отчёт по блицу уже отправлен — изменить его нельзя',too_often:'Сообщение уже отправлено — подожди немного',
+  too_long:'Слишком длинное сообщение — сократи до 1500 символов'})[code]||'Не получилось'}
 
 /* ---------- скриншот: сжатие + загрузка ---------- */
 function compress(file){
@@ -1074,16 +1119,33 @@ document.addEventListener('click',async e=>{
     await openAndReveal(un[0].id);
     return;
   }
-  if(a==='bz-min'){const ta=$('#bzReport');if(ta)bzDraft=ta.value;const b=blitzForToday();bzMinDate=b?b.edate:null;renderBlitzWidget();return}
+  if(a==='issue-open'){showIssueModal();return}
+  if(a==='issue-close'){const o=document.getElementById('issueOv');if(o)o.remove();return}
+  if(a==='issue-send'){
+    const txt=($('#issueText')&&$('#issueText').value||'').trim(), nm=($('#issueName')&&$('#issueName').value||'').trim();
+    if(!txt)return toast('Опиши проблему — хотя бы пару слов');
+    if($('#issueName')&&!nm)return toast('Напиши фамилию и имя');
+    t.disabled=true;t.textContent='Отправляю…';
+    const r=await rpc('report_issue',{p_token:AUTH.token||null,p_name:nm,p_text:txt,p_ctx:issueContext()},{retry:true,timeout:15000}).catch(()=>null);
+    if(!r||r.ok===false){t.disabled=false;t.textContent='Отправить организаторам';
+      return toast(r?errMsg(r.err):'Сервер не ответил. Напиши руководителю напрямую')}
+    const o=document.getElementById('issueOv');if(o)o.remove();
+    toast('✅ Отправлено — организаторы уже видят сообщение');return}
+  if(a==='bz-min'){const ta=$('#bzReport'),b=blitzForToday();if(ta&&b)bzDraft={d:b.edate,t:ta.value};bzMinDate=b?b.edate:null;renderBlitzWidget();return}
   if(a==='bz-max'){bzMinDate=null;renderBlitzWidget();return}
   if(a==='blitz-submit'){
     const rep=($('#bzReport')&&$('#bzReport').value||'').trim();
     if(!rep)return toast('Напиши пару слов — что сделал');
-    const r=await rpc('blitz_submit',{p_token:AUTH.token,p_report:rep}).catch(()=>null);
-    if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
-    if(r.ok===false)return toast(errMsg(r.err));
-    await loadAll();render();
-    toast('✅ Отчёт отправлен на проверку');
+    if(!confirm('Отправить отчёт по блицу?\n\nОтправка одна — изменить потом будет нельзя.'))return;
+    t.disabled=true;t.textContent='Отправляю…';
+    const r=await rpc('blitz_submit',{p_token:AUTH.token,p_report:rep},{timeout:20000}).catch(()=>null);
+    if(!r){t.disabled=false;t.textContent='Отправить на проверку';toast('Сервер не ответил — попробуй ещё раз');return}
+    if(r.ok===false&&r.err!=='already'){t.disabled=false;t.textContent='Отправить на проверку';return toast(errMsg(r.err))}
+    const b=blitzForToday();
+    if(b&&!(S.blitz_sub||[]).some(x=>x.edate===b.edate&&x.manager_id===AUTH.manager_id))
+      (S.blitz_sub=S.blitz_sub||[]).push({edate:b.edate,manager_id:AUTH.manager_id,report:rep,submitted_at:new Date().toISOString()});
+    renderBlitzWidget(); loadAll().then(renderBg).catch(()=>{});
+    toast(r.ok===false?errMsg(r.err):'✅ Отчёт отправлен на проверку');
     return;
   }
   if(a==='save-blitz'){
@@ -1212,27 +1274,66 @@ async function onAvatarPick(e){
 function catEligible(e){return S.managers.filter(m=>m.id!==e.manager_id&&dayEntries(m.id,e.day_index).every(x=>x.kind!=='special'&&x.kind!=='cat'))}
 function showReassignModal(eid){
   const e=S.entries.find(x=>x.id===eid); if(!e)return;
-  const list=catEligible(e);
+  const list=catEligible(e).sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'));
   let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="font-size:18px">🐱 Отдать «Кота в мешке»</h3>'
     +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>'
     +'<div class="note">Переназначить можно только один раз. Выбранный участник получит это задание и будет отдуваться за него.</div>';
-  h+= list.length?'<div class="reassign-list">'+list.map(m=>'<button data-action="do-reassign" data-eid="'+eid+'" data-target="'+m.id+'">'+avaTag(m)+esc(m.full_name)+' · '+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</button>').join('')+'</div>'
+  if(list.length)h+='<input id="catSearch" type="search" autocomplete="off" placeholder="🔍 Поиск по фамилии или имени" style="margin-top:10px">'
+    +'<div id="catNone" class="note" style="display:none;margin-top:8px">Никого не нашли</div>';
+  h+= list.length?'<div class="reassign-list">'+list.map(m=>'<button data-action="do-reassign" data-eid="'+eid+'" data-target="'+m.id+'" data-q="'+esc((m.full_name+' '+(m.team||'')+' '+(m.direction||'')).toLowerCase().replace(/ё/g,'е'))+'">'+avaTag(m)+esc(m.full_name)+' · '+esc([m.direction,m.team].filter(Boolean).join(' · '))+'</button>').join('')+'</div>'
     :'<div class="note" style="margin-top:10px">Нет подходящих участников (у остальных уже есть бонус или кот в этот день).</div>';
   const ov=document.createElement('div');ov.className='reveal-ov';
   ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
   document.body.appendChild(ov);
   reassignOv=ov;
+  const cs=ov.querySelector('#catSearch');
+  if(cs){cs.addEventListener('input',()=>{const q=cs.value.trim().toLowerCase().replace(/ё/g,'е');let n=0;
+      ov.querySelectorAll('.reassign-list button').forEach(b=>{const hit=!q||b.dataset.q.includes(q);b.style.display=hit?'':'none';if(hit)n++});
+      ov.querySelector('#catNone').style.display=n?'none':''});
+    if(matchMedia('(pointer:fine)').matches)setTimeout(()=>cs.focus(),50);}
   const close=()=>{ov.remove();reassignOv=null};
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-day"]'))close()});
 }
 let reassignOv=null;
+/* ---------- «У меня неполадки» → тревога в ТГ-канал руководителей ---------- */
+let lastErr='';
+window.addEventListener('error',e=>{lastErr=String(e.message||'').slice(0,200)});
+window.addEventListener('unhandledrejection',e=>{lastErr=String((e.reason&&e.reason.message)||e.reason||'').slice(0,200)});
+function mountHelpBtn(){if(document.getElementById('helpBtn'))return;
+  const b=document.createElement('button');b.id='helpBtn';b.setAttribute('data-action','issue-open');b.title='Сообщить о проблеме';
+  b.innerHTML='🆘 <span class="hb-t">У меня неполадки</span>';document.body.appendChild(b)}
+function issueContext(){const ua=navigator.userAgent;
+  const br=/YaBrowser/.test(ua)?'Яндекс':/OPR|Opera/.test(ua)?'Opera':/Edg\//.test(ua)?'Edge':/Chrome/.test(ua)?'Chrome':/Safari/.test(ua)?'Safari':/Firefox/.test(ua)?'Firefox':'?';
+  const os=/iPhone|iPad/.test(ua)?'iOS':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/Mac/.test(ua)?'Mac':'?';
+  return br+' · '+os+' · экран '+innerWidth+'×'+innerHeight+' · раздел: '+(UI.view||'?')+(navigator.onLine?'':' · ОФЛАЙН')
+    +(document.getElementById('netbar')?' · нет связи с сервером':'')+(lastErr?' · ошибка: '+lastErr:'')}
+function showIssueModal(){
+  if(document.getElementById('issueOv'))return;
+  const guest=AUTH.role!=='manager'&&AUTH.role!=='admin';
+  const ov=document.createElement('div');ov.className='reveal-ov';ov.id='issueOv';
+  ov.innerHTML='<div class="reveal-modal day-modal">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 style="font-size:18px">🆘 Что-то не работает?</h3>'
+    +'<button class="btn ghost sm" data-action="issue-close">Закрыть</button></div>'
+    +'<div class="note">Опиши, что случилось — сообщение сразу получат организаторы.</div>'
+    +(guest?'<div class="field" style="margin:10px 0 0"><label>Фамилия и имя</label><input id="issueName" autocomplete="off" placeholder="Иванова Анна"></div>':'')
+    +'<div class="field" style="margin:10px 0 0"><label>Что случилось</label><textarea id="issueText" rows="4" maxlength="1500" placeholder="Например: не открывается задание, пишет «ошибка сети»"></textarea></div>'
+    +'<button class="btn good" data-action="issue-send" style="margin-top:10px;width:100%;justify-content:center">Отправить организаторам</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',ev=>{if(ev.target===ov)ov.remove()});
+  setTimeout(()=>{const t=document.getElementById(guest?'issueName':'issueText');if(t&&matchMedia('(pointer:fine)').matches)t.focus()},50);
+}
 function lightbox(src){const d=document.createElement('div');d.className='lightbox';d.innerHTML='<img src="'+esc(src)+'">';d.onclick=()=>d.remove();document.body.appendChild(d)}
+let opening=false;
 async function openAndReveal(eid){
-  const r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid}).catch(()=>null);
-  if(!r){toast('Ошибка сети, попробуйте ещё раз');return}
+  if(opening)return; opening=true;
+  let r=null;
+  try{r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid},{retry:true,timeout:15000})}catch(e){console.error(e)}
+  opening=false;
+  if(!r){toast('Сервер не ответил — нажми ещё раз через пару секунд');return}
   if(r.ok===false){toast(errMsg(r.err));return}
-  await loadAll();render();
   const e=S.entries.find(x=>x.id===eid);
+  if(e&&!e.opened_at){e.opened_at=new Date().toISOString();rebuildIndex();}
+  render(); loadAll().then(renderBg).catch(()=>{});   // свежие данные — фоном, не заставляем ждать
   if(e&&e.kind==='cat')showCatReveal(e); else showRevealModal(e);
 }
 function playCatSound(){
@@ -1366,13 +1467,15 @@ function showRevealModal(e){
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
   document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'){close();document.removeEventListener('keydown',onEsc)}});
 }
-let bzMinDate=null, bzDraft='';   // свёрнутый блиц-виджет и черновик отчёта
+let bzMinDate=null, bzDraft={d:'',t:''};   // свёрнутый блиц-виджет и черновик отчёта (только на свой день)
 function renderBlitzWidget(){
   let w=document.getElementById('blitzWidget');
   const b=blitzForToday();
-  if(!blitzActive()||!b){ if(w)w.remove(); return; }
-  const prev=(document.getElementById('bzReport')||{}).value||bzDraft;
+  if(!blitzActive()||!b){ if(w)w.remove(); bzDraft={d:'',t:''}; return; }
+  const ta0=document.getElementById('bzReport');
+  const prev=(w&&w.dataset.edate===b.edate&&ta0&&ta0.value)||(bzDraft.d===b.edate?bzDraft.t:'');
   if(!w){w=document.createElement('div');w.id='blitzWidget';document.body.appendChild(w);}
+  w.dataset.edate=b.edate;
   if(bzMinDate===b.edate){   // свёрнут — только плашка с таймером
     w.className='min';
     w.innerHTML='<button class="bw-x" data-action="bz-max" title="Развернуть">⚡ Блиц <span class="bw-timer" id="bzTimer"></span> ▾</button>';
@@ -1386,22 +1489,28 @@ function renderBlitzWidget(){
     h+='<div class="bw-winner">🏆 Зачтено первым: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
   }else if(AUTH.role==='manager'){
     const mine=(S.blitz_sub||[]).find(x=>x.edate===b.edate && x.manager_id===AUTH.manager_id);
-    if(mine)h+='<div class="bw-winner" style="background:var(--plum-soft);color:var(--plum)">✅ Отчёт отправлен, ждёт проверки руководителя</div>';
-    h+='<textarea id="bzReport" rows="2" placeholder="Что сделал (коротко)">'+esc(mine?mine.report:'')+'</textarea>'
-      +'<button class="btn good sm" data-action="blitz-submit" style="width:100%;justify-content:center">'+(mine?'Обновить отчёт':'Отправить на проверку')+'</button>';
+    if(mine){   // отчёт по блицу — один раз, без правок
+      h+='<div class="bw-winner" style="background:var(--plum-soft);color:var(--plum)">✅ Отчёт отправлен, ждёт проверки руководителя</div>'
+        +'<div class="bw-hint" style="white-space:pre-wrap;color:var(--ink)">'+esc(mine.report)+'</div>';
+    }else{
+      h+='<div class="bw-hint">⚠️ Отчёт отправляется <b>один раз</b> — изменить его нельзя. Что в отчёте, то и смотрим.</div>'
+        +'<textarea id="bzReport" rows="2" autocomplete="off" placeholder="Что сделал (коротко)"></textarea>'
+        +'<button class="btn good sm" data-action="blitz-submit" style="width:100%;justify-content:center">Отправить на проверку</button>';
+    }
   }else{
     h+='<div class="bw-hint">Пришли отчёт за 30 минут. Кто сделает правильно первым — тому руководитель начислит +1 балл. Войди, чтобы участвовать.</div>';
   }
   h+='<div class="bw-timer" id="bzTimer"></div>';
   w.innerHTML=h;
-  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev; bzDraft='';
+  const ta=document.getElementById('bzReport'); if(ta&&prev)ta.value=prev; bzDraft={d:'',t:''};
   updateBlitzTimer();
 }
 function updateBlitzTimer(){
   const el=document.getElementById('bzTimer'); if(!el)return;
   const b=blitzForToday(); if(!b)return;
-  if(b.started_at && Date.now()<new Date(b.started_at).getTime()+30*60000){
-    let left=Math.floor((new Date(b.started_at).getTime()+30*60000-Date.now())/1000); if(left<0)left=0;
+  const t0=blitzStartMs(b);
+  if(t0!==null){
+    let left=Math.floor((t0+30*60000-Date.now())/1000); if(left<0)left=0;
     el.textContent='до конца: '+Math.floor(left/60)+':'+String(left%60).padStart(2,'0'); return;
   }
   if(S.settings&&S.settings.today_override){el.textContent='тест-режим · окно открыто'; return}
@@ -1444,11 +1553,11 @@ function updateCatTimers(){
     b.textContent='🫳 Скинуть кота другому · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
   });
 }
-function blitzTick(){
-  updateBlitzTimer(); updateCatTimers();
+function blitzTick(){   // каждую секунду; сбой одного таймера не должен мешать закрыть блиц
+  try{updateBlitzTimer()}catch(e){} try{updateCatTimers()}catch(e){}
   const active=blitzActive(),w=document.getElementById('blitzWidget');
   if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
-  else if(w){ w.remove(); }
+  else{ if(w){ w.remove(); bzDraft={d:'',t:''}; } const pop=document.querySelector('.blitz-pop'); if(pop)pop.remove(); }
 }
 function wireLogin(){
   const lp=$('#loginPin'), ln=$('#loginName'), ap=$('#adminPin');
@@ -1468,11 +1577,12 @@ try{const s=localStorage.getItem('advTheme');if(s)document.documentElement.setAt
 function start(){
   if(sb)return;
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  loadAll().then(()=>{render();subscribeRealtime();setInterval(blitzTick,1000)}).catch(err=>{
+  subscribeRealtime(); setInterval(blitzTick,1000); mountHelpBtn();
+  loadAll().then(()=>{render()}).catch(err=>{
     console.error(err);
     if(loading){
-      root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Не удалось подключиться к базе</h2>'
-        +'<div class="note">Проверь, что в CONFIG правильно указаны Project URL и anon key, и что SQL-скрипт выполнен в Supabase. Техническая деталь: '+esc(err.message||err)+'</div></div></div>';
+      root.innerHTML='<div class="login-wrap"><div class="card login-card"><h2>Сервер пока не отвечает</h2>'
+        +'<div class="note">Пробуем подключиться снова — страница обновится сама. Если долго не грузится, обнови страницу. Деталь: '+esc(err.message||err)+'</div></div></div>';
     }else{ toast('Нет связи с базой — показаны сохранённые данные'); }
   });
 }
