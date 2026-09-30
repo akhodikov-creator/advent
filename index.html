@@ -448,7 +448,7 @@ function statsOfRaw(m){
       if(done){points++;tasksDone++;} else if(pend){pending++;} else if(past){missed++;}
     }
   });
-  const bw=blitzWins(m.id); points+=bw; tasksDone+=bw;     // блиц-победы: +1 балл
+  const bw=blitzWins(m.id); points+=bw;     // блиц-победы: +1 балл (в «сделано N/M» не входят — там только задания календаря)
   return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
 }
 function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
@@ -500,7 +500,7 @@ function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeou
 // Вызов функции на сервере: с таймаутом и (для безопасных вызовов) повтором при сбое сети
 async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?3:1;let last;
   for(let i=0;i<tries;i++){
-    try{const{data,error}=await withTimeout(sb.rpc(fn,args),opt.timeout||25000);if(error)throw error;return data}
+    try{const{data,error}=await withTimeout(sb.rpc(fn,args||{}),opt.timeout||25000);if(error)throw error;return data}
     catch(e){last=e;if(i<tries-1)await sleep(700*(i+1)+Math.random()*900)}
   }
   throw last}
@@ -511,7 +511,7 @@ function loadAll(){
   if(loadP)return loadP;                          // уже грузим — ждём тот же запрос
   loadP=(async()=>{
     try{
-      const data=await rpc('bootstrap',null,{retry:true,timeout:20000});
+      const data=await rpc('bootstrap',{},{retry:true,timeout:20000});
       if(!data||!data.settings||!Array.isArray(data.managers))throw new Error('bootstrap: пустой ответ');
       if(!data.managers.length&&S.managers&&S.managers.length)throw new Error('bootstrap: нет участников — игнорируем');
       S.settings=data.settings; S.managers=data.managers; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
@@ -1096,14 +1096,16 @@ document.addEventListener('click',async e=>{
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
     if(!name)return toast('Выбери себя из списка');
     if(!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
-    const r=await rpc('login_manager',{p_name:name,p_pin:pin}).catch(()=>null);
+    let r,netErr=false; try{r=await rpc('login_manager',{p_name:name,p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'manager',token:r.token,manager_id:r.manager_id,full_name:r.full_name};UI.view='cabinet';UI.managerId=r.manager_id;persist();render();toast('Привет, '+r.full_name.split(' ')[0]+'!')}
     else toast('Неверная фамилия или PIN');
     return;
   }
   if(a==='do-login-admin'){
     const pin=$('#adminPin').value.trim();
-    const r=await rpc('login_admin',{p_pin:pin}).catch(()=>null);
+    let r,netErr=false; try{r=await rpc('login_admin',{p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'admin',token:r.token};UI.view='review';persist();render();toast('Вход администратора')}
     else toast('Неверный PIN администратора');
     return;
