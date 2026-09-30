@@ -519,10 +519,10 @@ function pendingCount(){let n=0;S.entries.forEach(e=>{if(e.review==='pending')n+
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
 // Вызов функции на сервере: с таймаутом и (для безопасных вызовов) повтором при сбое сети
-async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?3:1;let last;
+async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?5:1;let last;   // сеть до Supabase «залипает» волнами — зависшую попытку бросаем и повторяем
   for(let i=0;i<tries;i++){
     try{const{data,error}=await withTimeout(sb.rpc(fn,args||{}),opt.timeout||25000);if(error)throw error;return data}
-    catch(e){last=e;if(i<tries-1)await sleep(700*(i+1)+Math.random()*900)}
+    catch(e){last=e;if(i<tries-1)await sleep(400+i*600+Math.random()*600)}
   }
   throw last}
 // Загрузка всех данных. Если сервер не ответил или ответил пустым списком участников —
@@ -532,7 +532,7 @@ function loadAll(){
   if(loadP)return loadP;                          // уже грузим — ждём тот же запрос
   loadP=(async()=>{
     try{
-      const data=await rpc('bootstrap',{},{retry:true,timeout:20000});
+      const data=await rpc('bootstrap',{},{retry:true,timeout:9000});
       if(!data||!data.settings||!Array.isArray(data.managers))throw new Error('bootstrap: пустой ответ');
       if(!data.managers.length&&S.managers&&S.managers.length)throw new Error('bootstrap: нет участников — игнорируем');
       S.settings=data.settings; S.managers=data.managers; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
@@ -592,8 +592,8 @@ function subscribeRealtime(){
 let toastT;
 function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400)}
 
-async function act(fn,args,okMsg){
-  try{const r=await rpc(fn,args);
+async function act(fn,args,okMsg,opt){
+  try{const r=await rpc(fn,args,opt);
     if(r&&r.ok===false){toast(errMsg(r.err));return null}
     try{await loadAll()}catch(e){} render(); if(okMsg)toast(okMsg); return r;
   }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed|timeout/i.test(e.message);toast(net?'Сервер не ответил — попробуйте ещё раз через пару секунд':'Ошибка: '+e.message);return null}
@@ -1180,7 +1180,7 @@ document.addEventListener('click',async e=>{
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
     if(!name)return toast('Выбери себя из списка');
     if(!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
-    let r,netErr=false; try{r=await rpc('login_manager',{p_name:name,p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    let r,netErr=false; try{r=await rpc('login_manager',{p_name:name,p_pin:pin},{retry:true,timeout:7000})}catch(e){netErr=true;console.error(e)}
     if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'manager',token:r.token,manager_id:r.manager_id,full_name:r.full_name};UI.view='cabinet';UI.managerId=r.manager_id;persist();render();toast('Привет, '+r.full_name.split(' ')[0]+'!')}
     else toast('Неверная фамилия или PIN');
@@ -1188,7 +1188,7 @@ document.addEventListener('click',async e=>{
   }
   if(a==='do-login-admin'){
     const pin=$('#adminPin').value.trim();
-    let r,netErr=false; try{r=await rpc('login_admin',{p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    let r,netErr=false; try{r=await rpc('login_admin',{p_pin:pin},{retry:true,timeout:7000})}catch(e){netErr=true;console.error(e)}
     if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'admin',token:r.token};UI.view='review';persist();render();toast('Вход администратора')}
     else toast('Неверный PIN администратора');
@@ -1213,7 +1213,7 @@ document.addEventListener('click',async e=>{
     if(!txt)return toast('Опиши проблему — хотя бы пару слов');
     if($('#issueName')&&!nm)return toast('Напиши фамилию и имя');
     t.disabled=true;t.textContent='Отправляю…';
-    const r=await rpc('report_issue',{p_token:AUTH.token||null,p_name:nm,p_text:txt,p_ctx:issueContext()},{retry:true,timeout:15000}).catch(()=>null);
+    const r=await rpc('report_issue',{p_token:AUTH.token||null,p_name:nm,p_text:txt,p_ctx:issueContext()},{retry:true,timeout:7000}).catch(()=>null);
     if(!r||r.ok===false){t.disabled=false;t.textContent='Отправить организаторам';
       return toast(r?errMsg(r.err):'Сервер не ответил. Напиши руководителю напрямую')}
     const o=document.getElementById('issueOv');if(o)o.remove();
@@ -1279,11 +1279,11 @@ document.addEventListener('click',async e=>{
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
     if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или файл')}
     delete pendingShots[eid]; delete pendingPrev[eid];
-    return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
+    return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку',{retry:true,timeout:9000});
   }
 
   if(a==='review'){const cEl=$('#revc_'+t.dataset.eid);const comment=cEl?cEl.value.trim():'';
-    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
+    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено',{retry:true,timeout:9000})}
 
   if(a==='add-mgr'){
     const name=$('#newName').value.trim(), team=$('#newTeam').value.trim(), dir=$('#newDir').value;
@@ -1414,7 +1414,7 @@ let opening=false;
 async function openAndReveal(eid){
   if(opening)return; opening=true;
   let r=null;
-  try{r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid},{retry:true,timeout:15000})}catch(e){console.error(e)}
+  try{r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid},{retry:true,timeout:7000})}catch(e){console.error(e)}
   opening=false;
   if(!r){toast('Сервер не ответил — нажми ещё раз через пару секунд');return}
   if(r.ok===false){toast(errMsg(r.err));return}
