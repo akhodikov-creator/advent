@@ -196,6 +196,23 @@ textarea{resize:vertical;line-height:1.5;font-size:14px}
 video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 .shot-media{max-height:360px;background:#000}
 .shot-audio{width:100%;margin-top:6px}
+.team-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.team-head,.team-blitz{padding:18px}
+.team-head .eyebrow,.team-blitz .eyebrow{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.13em;color:var(--muted)}
+.team-head .big{font-family:var(--serif);font-size:24px;line-height:1.2;margin-top:4px}
+.team-blitz{display:flex;flex-direction:column;gap:6px}
+.team-card .task{font-size:14.5px;line-height:1.45;font-weight:600}
+.team-head .mini{margin:0}
+.team-daynav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 12px}
+.team-daylabel{font-weight:800;font-size:17px;text-align:center}
+.team-sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.team-blitz{margin-bottom:14px;border:2px solid #E4BE5C}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.team-card{display:flex;flex-direction:column;gap:10px}
+.tentry{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px}
+.tentry.cat{border-color:#E26A5A}.tentry.spec{border-color:#E4BE5C}
+.tentry-top{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+@media(max-width:720px){.team-grid{grid-template-columns:1fr}}
 .shot-file{display:inline-block;margin-top:4px;font-size:13px;font-weight:700;color:var(--accent,#2563eb)}
 .rev-actions{display:flex;flex-direction:column;gap:6px}
 .login-wrap{max-width:420px;margin:6vh auto 0}
@@ -451,7 +468,11 @@ function statsOfRaw(m){
   const bw=blitzWins(m.id); points+=bw;     // блиц-победы: +1 балл (в «сделано N/M» не входят — там только задания календаря)
   return{points,gifts,missed,pending,tasksDone,tasksElapsed,doneDays:tasksDone,elapsed:tasksElapsed};
 }
-function filteredManagers(){return S.managers.filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
+const normName=t=>String(t||'').trim().toLowerCase().replace(/ё/g,'е');
+function isLead(m){return !!m&&!!normName(m.team)&&normName((m.full_name||'').split(/\s+/)[0])===normName(m.team)}
+function players(){return S.managers.filter(m=>!isLead(m))}          // участники рейтинга (без руководителей)
+function meLead(){if(AUTH.role!=='manager')return null;const m=S.managers.find(x=>x.id===AUTH.manager_id);return isLead(m)?m:null}
+function filteredManagers(){return players().filter(m=>UI.dirFilter==='all'||(m.direction||'')===UI.dirFilter)}
 function standings(){
   return filteredManagers().map(m=>({m,s:statsOf(m)}))
     .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
@@ -466,7 +487,7 @@ function teamStandings(){
 }
 function ballWord(n){n=Math.abs(n)%100;const d=n%10;if(n>10&&n<20)return 'баллов';if(d>1&&d<5)return 'балла';if(d===1)return 'балл';return 'баллов';}
 function rankInfo(m){
-  const all=S.managers.map(x=>({m:x,s:statsOf(x)}))
+  const all=players().map(x=>({m:x,s:statsOf(x)}))
     .sort((a,b)=> b.s.points-a.s.points || b.s.gifts-a.s.gifts || a.m.full_name.localeCompare(b.m.full_name));
   const idx=all.findIndex(r=>r.m.id===m.id);
   if(idx<0)return null;
@@ -639,11 +660,15 @@ function render(){
   if(UI.view==='cabinet'&&AUTH.role==='guest')UI.view='login';
   if((UI.view==='review'||UI.view==='admin')&&AUTH.role!=='admin')UI.view=(AUTH.role==='manager'?'cabinet':'login');
   if(AUTH.role==='manager')UI.managerId=AUTH.manager_id;
+  const lead=meLead();
+  if(lead&&UI.view==='cabinet')UI.view='team';
+  if(UI.view==='team'&&!lead)UI.view=(AUTH.role==='manager'?'cabinet':'board');
 
   let body;
   if(UI.view==='login')body=viewLogin();
   else if(UI.view==='board')body=viewBoard();
   else if(UI.view==='cabinet')body=viewCabinet();
+  else if(UI.view==='team')body=viewTeam(lead);
   else if(UI.view==='review')body=viewReview();
   else if(UI.view==='admin')body=viewAdmin();
   root.innerHTML=header()+nav()+body+
@@ -676,7 +701,7 @@ function header(){
 }
 function nav(){
   const it=[['board','Рейтинг']];
-  if(AUTH.role==='manager')it.push(['cabinet','Мой кабинет']);
+  if(AUTH.role==='manager')it.push(meLead()?['team','Моя команда']:['cabinet','Мой кабинет']);
   if(AUTH.role==='admin'){const pc=pendingCount();
     it.push(['cabinet','Кабинеты']);
     it.push(['review','Проверка'+(pc?'<span class="badge">'+pc+'</span>':'')]);
@@ -708,7 +733,7 @@ function dirChips(){
   return '<div class="dirfilter">'+chip('all','Все')+DIRS.map(d=>chip(d,d)).join('')+'</div>';
 }
 function leaderboardBlock(){
-  if(!S.managers.length)return '<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';
+  if(!players().length)return '<div class="card empty"><div class="big">Участников пока нет</div><div>Администратор добавит их в «Настройках».</div></div>';
   return '<div class="section-h"><h2>Рейтинг</h2><div class="seg">'
     +'<button data-action="lbtab" data-tab="people" aria-current="'+(UI.lbTab==='people')+'">Менеджеры</button>'
     +'<button data-action="lbtab" data-tab="team" aria-current="'+(UI.lbTab==='team')+'">Отделы</button></div></div>'
@@ -716,7 +741,7 @@ function leaderboardBlock(){
     +(UI.lbTab==='people'?lbPeople():lbTeam());
 }
 function viewBoard(){
-  const me=(AUTH.role==='manager')?S.managers.find(x=>x.id===AUTH.manager_id):null;
+  const me=(AUTH.role==='manager'&&!meLead())?S.managers.find(x=>x.id===AUTH.manager_id):null;
   const lb=leaderboardBlock();
   if(me){  // вошёл менеджер — слева рейтинг, справа свой календарь
     return '<div class="split"><div class="split-l">'+lb+'</div>'
@@ -772,13 +797,72 @@ function todayCard(m,idx){
     +body+'<div class="foot">'+statusPill(e)+(hasBonus?'<span class="pill spec">🎁 +бонус</span>':'')+'</div></div>';
 }
 
+/* ---- МОЯ КОМАНДА (для руководителя) ---- */
+function viewTeam(lead){
+  const members=players().filter(m=>normName(m.team)===normName(lead.team)&&(m.direction||'')===(lead.direction||''))
+    .sort((a,b)=>a.full_name.localeCompare(b.full_name,'ru'));
+  const wds=workdays(), eff=effToday(), past=wds.filter(d=>d<=eff);
+  // место отдела среди всех отделов
+  const saveDir=UI.dirFilter; UI.dirFilter='all';
+  const trows=teamStandings(); UI.dirFilter=saveDir;
+  const tpl=places(trows,r=>r.avg.toFixed(3)+'/'+r.gavg.toFixed(3));
+  const ti=trows.findIndex(r=>normName(r.team)===normName(lead.team)&&r.dir===(lead.direction||'—'));
+  const head='<div class="card team-head"><div><div class="eyebrow">'+esc(lead.direction||'')+' · твоя команда</div>'
+    +'<div class="big">«'+esc(lead.team)+'» · '+members.length+' чел.</div></div>'
+    +(ti>=0?'<div class="mini"><div class="box"><div class="n">'+tpl[ti]+' / '+trows.length+'</div><div class="l">место отдела</div></div>'
+      +'<div class="box"><div class="n">'+trows[ti].avg.toFixed(1).replace('.',',')+'</div><div class="l">ср. балл</div></div>'
+      +'<div class="box"><div class="n">🎁 '+trows[ti].gifts+'</div><div class="l">подарков</div></div></div>':'')+'</div>';
+  if(!members.length)return head+'<div class="card empty"><div class="big">В команде пока никого</div><div>Проверь, что у менеджеров в «Отделе» указано «'+esc(lead.team)+'».</div></div>';
+  if(!past.length)return head+'<div class="card empty"><div class="big">Конкурс ещё не стартовал</div><div>Задания команды появятся здесь в день старта'+(wds.length?' — '+fmtLong(wds[0]):'')+'.</div></div>';
+  if(!UI.teamDay||past.indexOf(UI.teamDay)<0)UI.teamDay=past[past.length-1];
+  const day=UI.teamDay, di=wds.indexOf(day), pi=past.indexOf(day);
+  const nav='<div class="team-daynav">'
+    +'<button class="btn sm ghost" data-action="team-day" data-day="'+(pi>0?past[pi-1]:'')+'"'+(pi>0?'':' disabled')+'>← Пред.</button>'
+    +'<div class="team-daylabel">'+fmtWD(day)+', '+fmtLong(day)+(day===eff?' · сегодня':'')+'</div>'
+    +'<button class="btn sm ghost" data-action="team-day" data-day="'+(pi<past.length-1?past[pi+1]:'')+'"'+(pi<past.length-1?'':' disabled')+'>След. →</button></div>';
+  // сводка за день
+  let opened=0,sent=0,appr=0; const notOpened=[];
+  members.forEach(m=>{const es=dayEntries(m.id,di);
+    if(es.length&&es.every(e=>e.opened_at))opened++; else notOpened.push(m.full_name.split(' ')[0]);
+    es.forEach(e=>{if(e.review&&e.review!=='none')sent++; if(e.review==='approved')appr++;});});
+  const total=members.reduce((n,m)=>n+dayEntries(m.id,di).length,0);
+  const sum='<div class="team-sum">'
+    +'<span class="pill reg">Открыли все задания: <b>'+opened+' / '+members.length+'</b></span>'
+    +'<span class="pill review">Отчётов: <b>'+sent+' / '+total+'</b></span>'
+    +'<span class="pill done">Зачтено: <b>'+appr+'</b></span>'
+    +(notOpened.length?'<span class="pill wait">Не открыли: '+esc(notOpened.join(', '))+'</span>':'')+'</div>';
+  // блиц дня
+  const bz=(S.blitz||[]).find(b=>b.edate===day&&b.body&&b.body.trim());
+  let bzh='';
+  if(bz){const t=splitTitle(bz.body), ids=members.map(m=>m.id);
+    const subs=(S.blitz_sub||[]).filter(x=>x.edate===day&&ids.indexOf(x.manager_id)>=0);
+    bzh='<div class="card team-blitz"><div class="eyebrow">⚡ Блиц дня'+(bz.start_time?' · '+String(bz.start_time).slice(0,5)+' ЕКБ':'')+'</div>'
+      +(t.title?'<div class="ttitle">'+esc(t.title)+'</div>':'')+'<div class="task">'+esc(t.text)+'</div>'
+      +'<div class="note">Отчёты команды: '+(subs.length?subs.map(x=>esc(mgrName(x.manager_id).split(' ')[0])+(bz.winner_manager_id===x.manager_id?' 🏆':'')).join(', '):'пока никто')+'</div></div>';}
+  const rank=m=>{const ri=rankInfo(m);return ri?ri.rank+' место · '+ri.points+' '+ballWord(ri.points):''};
+  const cards=members.map(m=>{
+    const es=dayEntries(m.id,di).slice().sort((a,b)=>(a.kind==='regular'?1:0)-(b.kind==='regular'?1:0));
+    const blocks=es.length?es.map(e=>{
+      const badge=e.kind==='cat'?'<span class="pill cat">🐱 Кот в мешке</span>':e.kind==='special'?'<span class="pill spec">🎁 Бонус</span>':'<span class="pill reg">📌 Ежедневное</span>';
+      return '<div class="tentry '+(e.kind==='cat'?'cat':e.kind==='special'?'spec':'')+'"><div class="tentry-top">'+badge+statusPill(e)+'</div>'
+        +(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="task">'+esc(e.task_text)+'</div>'
+        +((e.report_text||e.report_link||e.screenshot_url)?reportView(e):'')
+        +(e.review_comment?commentBox(e.review_comment):'')+'</div>';
+    }).join(''):'<div class="note">Заданий на этот день нет</div>';
+    return '<div class="card tcard team-card"><div class="hd">'+avaTag(m)+'<div><div class="nm">'+esc(m.full_name)+'</div><div class="tm">'+rank(m)+'</div></div></div>'+blocks+'</div>';
+  }).join('');
+  return head+nav+sum+bzh+'<div class="team-grid">'+cards+'</div>'
+    +'<div class="note" style="margin-top:12px">Ты видишь задания команды заранее, даже неоткрытые, — помоги ребятам их закрыть. Проверяет отчёты администратор.</div>';
+}
+
 /* ---- CABINET ---- */
 function viewCabinet(){
   if(!S.managers.length)return '<div class="card empty"><div class="big">Нет участников</div></div>';
   let picks='';
   if(AUTH.role==='admin'){
-    if(!UI.managerId||!S.managers.find(m=>m.id===UI.managerId))UI.managerId=S.managers[0].id;
-    picks='<div class="pickwrap">'+S.managers.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>
+    const pl=players().length?players():S.managers;
+    if(!UI.managerId||!pl.find(m=>m.id===UI.managerId))UI.managerId=pl[0].id;
+    picks='<div class="pickwrap">'+pl.slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru')).map(m=>
       '<button class="pick" data-action="pick" data-id="'+m.id+'" aria-current="'+(UI.managerId===m.id)+'">'+avaTag(m)+esc(m.full_name)+'</button>').join('')+'</div>';
   }
   const m=S.managers.find(x=>x.id===UI.managerId)||S.managers[0];
@@ -1121,6 +1205,7 @@ document.addEventListener('click',async e=>{
     await openAndReveal(un[0].id);
     return;
   }
+  if(a==='team-day'){if(t.dataset.day){UI.teamDay=t.dataset.day;render();window.scrollTo(0,0)}return}
   if(a==='issue-open'){showIssueModal();return}
   if(a==='issue-close'){const o=document.getElementById('issueOv');if(o)o.remove();return}
   if(a==='issue-send'){
@@ -1273,7 +1358,7 @@ async function onAvatarPick(e){
     await act('admin_set_avatar',{p_token:AUTH.token,p_id:id,p_url:url},'Аватар обновлён');
   }catch(err){console.error(err);toast('Не удалось загрузить аватар')}
 }
-function catEligible(e){return S.managers.filter(m=>m.id!==e.manager_id&&dayEntries(m.id,e.day_index).every(x=>x.kind!=='special'&&x.kind!=='cat'))}
+function catEligible(e){return players().filter(m=>m.id!==e.manager_id&&dayEntries(m.id,e.day_index).every(x=>x.kind!=='special'&&x.kind!=='cat'))}
 function showReassignModal(eid){
   const e=S.entries.find(x=>x.id===eid); if(!e)return;
   const list=catEligible(e).sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'));
@@ -1489,6 +1574,8 @@ function renderBlitzWidget(){
   if(b.winner_manager_id){
     const me=AUTH.role==='manager'&&AUTH.manager_id===b.winner_manager_id;
     h+='<div class="bw-winner">🏆 Зачтено первым: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
+  }else if(AUTH.role==='manager'&&meLead()){
+    h+='<div class="bw-hint">Блиц для менеджеров твоей команды — подгони ребят! Кто отправил отчёт, видно во вкладке «Моя команда».</div>';
   }else if(AUTH.role==='manager'){
     const mine=(S.blitz_sub||[]).find(x=>x.edate===b.edate && x.manager_id===AUTH.manager_id);
     if(mine){   // отчёт по блицу — один раз, без правок
