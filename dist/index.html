@@ -519,10 +519,10 @@ function pendingCount(){let n=0;S.entries.forEach(e=>{if(e.review==='pending')n+
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),ms))])}
 // Вызов функции на сервере: с таймаутом и (для безопасных вызовов) повтором при сбое сети
-async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?3:1;let last;
+async function rpc(fn,args,opt){opt=opt||{};const tries=opt.retry?5:1;let last;   // сеть до Supabase «залипает» волнами — зависшую попытку бросаем и повторяем
   for(let i=0;i<tries;i++){
     try{const{data,error}=await withTimeout(sb.rpc(fn,args||{}),opt.timeout||25000);if(error)throw error;return data}
-    catch(e){last=e;if(i<tries-1)await sleep(700*(i+1)+Math.random()*900)}
+    catch(e){last=e;if(i<tries-1)await sleep(400+i*600+Math.random()*600)}
   }
   throw last}
 // Загрузка всех данных. Если сервер не ответил или ответил пустым списком участников —
@@ -532,7 +532,7 @@ function loadAll(){
   if(loadP)return loadP;                          // уже грузим — ждём тот же запрос
   loadP=(async()=>{
     try{
-      const data=await rpc('bootstrap',{},{retry:true,timeout:20000});
+      const data=await rpc('bootstrap',{},{retry:true,timeout:9000});
       if(!data||!data.settings||!Array.isArray(data.managers))throw new Error('bootstrap: пустой ответ');
       if(!data.managers.length&&S.managers&&S.managers.length)throw new Error('bootstrap: нет участников — игнорируем');
       S.settings=data.settings; S.managers=data.managers; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
@@ -590,10 +590,10 @@ function subscribeRealtime(){
 }
 
 let toastT;
-function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400)}
+function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),Math.max(2400,String(m).length*70))}
 
-async function act(fn,args,okMsg){
-  try{const r=await rpc(fn,args);
+async function act(fn,args,okMsg,opt){
+  try{const r=await rpc(fn,args,opt);
     if(r&&r.ok===false){toast(errMsg(r.err));return null}
     try{await loadAll()}catch(e){} render(); if(okMsg)toast(okMsg); return r;
   }catch(e){console.error(e);const net=!e||!e.message||/fetch|network|Failed|timeout/i.test(e.message);toast(net?'Сервер не ответил — попробуйте ещё раз через пару секунд':'Ошибка: '+e.message);return null}
@@ -616,15 +616,16 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
 function compress(file){
   return new Promise((res,rej)=>{
     const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=()=>{const max=1400;let{width:w,height:h}=img;
+    img.onload=()=>{const max=1280;let{width:w,height:h}=img;
       if(w>max||h>max){const k=Math.min(max/w,max/h);w=Math.round(w*k);h=Math.round(h*k)}
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
-      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
+      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.78)};
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
 }
 /* Вложение к отчёту: картинки сжимаем, остальное (видео, аудио, документы) грузим как есть, до 50 МБ */
 const MAX_UPLOAD=50*1024*1024;
+let onUploadRetry=null;   // подпись на кнопке «попытка N из 5»
 const UPLOAD_ACCEPT='image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
 function fileKind(u){const x=String(u||'').split('?')[0].toLowerCase();
   if(/\.(jpe?g|png|gif|webp|bmp)$/.test(x))return 'img';
@@ -646,9 +647,20 @@ async function uploadShot(entryId,file){
   if(!ext)ext=((file.name||'').split('.').pop()||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
   if(blob.size>MAX_UPLOAD)throw new Error('too_big');
   const path=entryId+'/'+Date.now()+'.'+ext;
-  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true});
-  if(error)throw error;
-  return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
+  // связь до хранилища «залипает» волнами — зависшую попытку бросаем и повторяем (тот же путь, перезапись)
+  const perTry=10000+Math.round(blob.size/150);       // ~10 с + запас на размер (≈150 КБ/с): скриншот ≈11 с, видео 20 МБ ≈2,5 мин
+  let last;
+  for(let i=0;i<5;i++){
+    try{const{error}=await withTimeout(sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true}),perTry);
+      if(error)throw error;
+      return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;}
+    catch(e){last=e;console.warn('upload try',i+1,e&&e.message);
+      const sc=String((e&&(e.statusCode||e.status))||'');
+      if(sc[0]==='4'&&sc!=='408')break;                 // ошибка не сети — повтор не поможет
+      if(i<4){if(onUploadRetry)onUploadRetry(i+2);await sleep(800+i*700);}
+    }
+  }
+  throw last;
 }
 
 /* =====================================================================
@@ -1180,7 +1192,7 @@ document.addEventListener('click',async e=>{
     const name=$('#loginName').value, pin=$('#loginPin').value.trim();
     if(!name)return toast('Выбери себя из списка');
     if(!/^\d{4}$/.test(pin))return toast('PIN — 4 цифры');
-    let r,netErr=false; try{r=await rpc('login_manager',{p_name:name,p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    let r,netErr=false; try{r=await rpc('login_manager',{p_name:name,p_pin:pin},{retry:true,timeout:7000})}catch(e){netErr=true;console.error(e)}
     if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'manager',token:r.token,manager_id:r.manager_id,full_name:r.full_name};UI.view='cabinet';UI.managerId=r.manager_id;persist();render();toast('Привет, '+r.full_name.split(' ')[0]+'!')}
     else toast('Неверная фамилия или PIN');
@@ -1188,7 +1200,7 @@ document.addEventListener('click',async e=>{
   }
   if(a==='do-login-admin'){
     const pin=$('#adminPin').value.trim();
-    let r,netErr=false; try{r=await rpc('login_admin',{p_pin:pin},{retry:true,timeout:15000})}catch(e){netErr=true;console.error(e)}
+    let r,netErr=false; try{r=await rpc('login_admin',{p_pin:pin},{retry:true,timeout:7000})}catch(e){netErr=true;console.error(e)}
     if(netErr){toast('Сервер не ответил — попробуй ещё раз через пару секунд');return}
     if(r&&r.ok){AUTH={role:'admin',token:r.token};UI.view='review';persist();render();toast('Вход администратора')}
     else toast('Неверный PIN администратора');
@@ -1213,7 +1225,7 @@ document.addEventListener('click',async e=>{
     if(!txt)return toast('Опиши проблему — хотя бы пару слов');
     if($('#issueName')&&!nm)return toast('Напиши фамилию и имя');
     t.disabled=true;t.textContent='Отправляю…';
-    const r=await rpc('report_issue',{p_token:AUTH.token||null,p_name:nm,p_text:txt,p_ctx:issueContext()},{retry:true,timeout:15000}).catch(()=>null);
+    const r=await rpc('report_issue',{p_token:AUTH.token||null,p_name:nm,p_text:txt,p_ctx:issueContext()},{retry:true,timeout:7000}).catch(()=>null);
     if(!r||r.ok===false){t.disabled=false;t.textContent='Отправить организаторам';
       return toast(r?errMsg(r.err):'Сервер не ответил. Напиши руководителю напрямую')}
     const o=document.getElementById('issueOv');if(o)o.remove();
@@ -1272,18 +1284,20 @@ document.addEventListener('click',async e=>{
     if(pendingShots[eid]){const f=pendingShots[eid];t.disabled=true;
       t.textContent=f.size>5242880?'Загружаю файл ('+fmtMB(f.size)+')… не закрывай страницу':'Загружаю файл…';
       uploading=true;
+      onUploadRetry=n=>{t.textContent='Связь тормозит — пробую ещё раз ('+n+' из 5)…'};
       try{shot=await uploadShot(eid,f)}
-      catch(err){uploading=false;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
-        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Не удалось загрузить файл. Проверь интернет или пришли ссылкой')}
-      uploading=false}
+      catch(err){uploading=false;onUploadRetry=null;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
+        const why=err&&err.message==='timeout'?'сервер не отвечает':((err&&(err.message||err.error))||'неизвестно');
+        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Файл не загрузился ('+why+'). Отправь отчёт со ссылкой или попробуй с телефона через мобильный интернет')}
+      uploading=false; onUploadRetry=null}
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
     if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или файл')}
     delete pendingShots[eid]; delete pendingPrev[eid];
-    return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку');
+    return act('submit_entry',{p_token:AUTH.token,p_entry:eid,p_text:text,p_link:link,p_shot:shot},'Отчёт отправлен на проверку',{retry:true,timeout:9000});
   }
 
   if(a==='review'){const cEl=$('#revc_'+t.dataset.eid);const comment=cEl?cEl.value.trim():'';
-    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено')}
+    return act('admin_review',{p_token:AUTH.token,p_entry:t.dataset.eid,p_decision:t.dataset.dec,p_comment:comment},t.dataset.dec==='approved'?'Зачтено':'Отклонено',{retry:true,timeout:9000})}
 
   if(a==='add-mgr'){
     const name=$('#newName').value.trim(), team=$('#newTeam').value.trim(), dir=$('#newDir').value;
@@ -1414,7 +1428,7 @@ let opening=false;
 async function openAndReveal(eid){
   if(opening)return; opening=true;
   let r=null;
-  try{r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid},{retry:true,timeout:15000})}catch(e){console.error(e)}
+  try{r=await rpc('open_entry',{p_token:AUTH.token,p_entry:eid},{retry:true,timeout:7000})}catch(e){console.error(e)}
   opening=false;
   if(!r){toast('Сервер не ответил — нажми ещё раз через пару секунд');return}
   if(r.ok===false){toast(errMsg(r.err));return}
