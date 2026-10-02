@@ -345,6 +345,8 @@ video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
 .brow input[type="time"]{width:auto}
 .brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;padding:10px 12px;border:1px dashed #E4BE5C;border-radius:10px;background:var(--surface-2)}
+.bpick select{width:auto;flex:1;min-width:220px}
 .bsublist{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line)}
 .bsub{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface-2);border-radius:8px;padding:8px 10px}
 .bsub.win{background:var(--good-soft)}
@@ -1144,10 +1146,18 @@ function blitzCard(){
             +(isWin?'<span class="pill done">🏆 +1</span>':'<button class="btn sm good" data-action="award-blitz" data-date="'+iso+'" data-mid="'+sub.manager_id+'">Засчитать +1</button>')
             +'</div>';}).join('')+'</div>';
     }
+    let pick='';
+    if(iso<=eff&&b.body&&!b.winner_manager_id){
+      const opts=players().slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'))
+        .map(m=>'<option value="'+m.id+'">'+esc(m.full_name)+' · '+esc(m.direction||'')+'</option>').join('');
+      pick='<div class="bpick"><span class="note">Победитель без отчёта (например, «кто больше за 30 минут»):</span>'
+        +'<select data-bzpick="'+iso+'"><option value="">— выбери участника —</option>'+opts+'</select>'
+        +'<button class="btn sm good" data-action="award-blitz-pick" data-date="'+iso+'">🏆 Назначить +1</button></div>';
+    }
     return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+(iso===eff?' · сегодня':'')+'</div>'
       +'<input data-bz="'+iso+'" value="'+esc(b.body||'')+'" placeholder="Название | Блиц-задание на этот день">'
       +'<input type="time" data-bztime="'+iso+'" value="'+tm+'" title="Время запуска (ЕКБ)">'
-      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+'</div>';
+      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+pick+'</div>';
   }).join('');
   return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
     +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. Всплывает у всех автоматически в указанное время (по умолчанию 15:00 ЕКБ) — время можно менять для каждого дня. Окно 30 минут; первый, кто отправит отчёт, получает +1 балл. Кнопка <b>«Запустить сейчас»</b> — для теста: блиц немедленно всплывёт у всех на 30 минут.</div>'
@@ -1263,6 +1273,12 @@ document.addEventListener('click',async e=>{
     return;
   }
   if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
+  if(a==='award-blitz-pick'){
+    const sel=document.querySelector('select[data-bzpick="'+t.dataset.date+'"]'), mid=sel&&sel.value;
+    if(!mid)return toast('Выбери участника');
+    if(!confirm('Засчитать блиц за '+fmtLong(t.dataset.date)+': '+mgrName(mid)+' получает +1 балл?'))return;
+    return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:mid},'🏆 Победитель назначен, +1 балл',{retry:true,timeout:9000});
+  }
   if(a==='award-blitz'){return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:t.dataset.mid},'Зачтено! +1 балл');}
   if(a==='save-tg'){
     const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim(), rc=$('#tgReports').value.trim();
