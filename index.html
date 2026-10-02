@@ -345,6 +345,8 @@ video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
 .brow input[type="time"]{width:auto}
 .brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.bpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;padding:10px 12px;border:1px dashed #E4BE5C;border-radius:10px;background:var(--surface-2)}
+.bpick select{width:auto;flex:1;min-width:220px}
 .bsublist{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line)}
 .bsub{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--surface-2);border-radius:8px;padding:8px 10px}
 .bsub.win{background:var(--good-soft)}
@@ -590,7 +592,7 @@ function subscribeRealtime(){
 }
 
 let toastT;
-function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2400)}
+function toast(m){let el=$('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.appendChild(el)}el.textContent=m;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),Math.max(2400,String(m).length*70))}
 
 async function act(fn,args,okMsg,opt){
   try{const r=await rpc(fn,args,opt);
@@ -616,15 +618,16 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
 function compress(file){
   return new Promise((res,rej)=>{
     const img=new Image(),url=URL.createObjectURL(file);
-    img.onload=()=>{const max=1400;let{width:w,height:h}=img;
+    img.onload=()=>{const max=1280;let{width:w,height:h}=img;
       if(w>max||h>max){const k=Math.min(max/w,max/h);w=Math.round(w*k);h=Math.round(h*k)}
       const c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
-      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.82)};
+      c.toBlob(b=>b?res(b):rej(new Error('blob')),'image/jpeg',0.78)};
     img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('img'))};img.src=url});
 }
 /* Вложение к отчёту: картинки сжимаем, остальное (видео, аудио, документы) грузим как есть, до 50 МБ */
 const MAX_UPLOAD=50*1024*1024;
+let onUploadRetry=null;   // подпись на кнопке «попытка N из 5»
 const UPLOAD_ACCEPT='image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx';
 function fileKind(u){const x=String(u||'').split('?')[0].toLowerCase();
   if(/\.(jpe?g|png|gif|webp|bmp)$/.test(x))return 'img';
@@ -646,9 +649,20 @@ async function uploadShot(entryId,file){
   if(!ext)ext=((file.name||'').split('.').pop()||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
   if(blob.size>MAX_UPLOAD)throw new Error('too_big');
   const path=entryId+'/'+Date.now()+'.'+ext;
-  const{error}=await sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true});
-  if(error)throw error;
-  return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;
+  // связь до хранилища «залипает» волнами — зависшую попытку бросаем и повторяем (тот же путь, перезапись)
+  const perTry=10000+Math.round(blob.size/150);       // ~10 с + запас на размер (≈150 КБ/с): скриншот ≈11 с, видео 20 МБ ≈2,5 мин
+  let last;
+  for(let i=0;i<5;i++){
+    try{const{error}=await withTimeout(sb.storage.from('reports').upload(path,blob,{contentType:type,upsert:true}),perTry);
+      if(error)throw error;
+      return sb.storage.from('reports').getPublicUrl(path).data.publicUrl;}
+    catch(e){last=e;console.warn('upload try',i+1,e&&e.message);
+      const sc=String((e&&(e.statusCode||e.status))||'');
+      if(sc[0]==='4'&&sc!=='408')break;                 // ошибка не сети — повтор не поможет
+      if(i<4){if(onUploadRetry)onUploadRetry(i+2);await sleep(800+i*700);}
+    }
+  }
+  throw last;
 }
 
 /* =====================================================================
@@ -1132,10 +1146,18 @@ function blitzCard(){
             +(isWin?'<span class="pill done">🏆 +1</span>':'<button class="btn sm good" data-action="award-blitz" data-date="'+iso+'" data-mid="'+sub.manager_id+'">Засчитать +1</button>')
             +'</div>';}).join('')+'</div>';
     }
+    let pick='';
+    if(iso<=eff&&b.body&&!b.winner_manager_id){
+      const opts=players().slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'))
+        .map(m=>'<option value="'+m.id+'">'+esc(m.full_name)+' · '+esc(m.direction||'')+'</option>').join('');
+      pick='<div class="bpick"><span class="note">Победитель без отчёта (например, «кто больше за 30 минут»):</span>'
+        +'<select data-bzpick="'+iso+'"><option value="">— выбери участника —</option>'+opts+'</select>'
+        +'<button class="btn sm good" data-action="award-blitz-pick" data-date="'+iso+'">🏆 Назначить +1</button></div>';
+    }
     return '<div class="brow"><div class="bdate">'+fmtLong(iso)+' · '+fmtWD(iso)+(iso===eff?' · сегодня':'')+'</div>'
       +'<input data-bz="'+iso+'" value="'+esc(b.body||'')+'" placeholder="Название | Блиц-задание на этот день">'
       +'<input type="time" data-bztime="'+iso+'" value="'+tm+'" title="Время запуска (ЕКБ)">'
-      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+'</div>';
+      +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+pick+'</div>';
   }).join('');
   return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
     +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. Всплывает у всех автоматически в указанное время (по умолчанию 15:00 ЕКБ) — время можно менять для каждого дня. Окно 30 минут; первый, кто отправит отчёт, получает +1 балл. Кнопка <b>«Запустить сейчас»</b> — для теста: блиц немедленно всплывёт у всех на 30 минут.</div>'
@@ -1251,6 +1273,12 @@ document.addEventListener('click',async e=>{
     return;
   }
   if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
+  if(a==='award-blitz-pick'){
+    const sel=document.querySelector('select[data-bzpick="'+t.dataset.date+'"]'), mid=sel&&sel.value;
+    if(!mid)return toast('Выбери участника');
+    if(!confirm('Засчитать блиц за '+fmtLong(t.dataset.date)+': '+mgrName(mid)+' получает +1 балл?'))return;
+    return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:mid},'🏆 Победитель назначен, +1 балл',{retry:true,timeout:9000});
+  }
   if(a==='award-blitz'){return act('admin_blitz_award',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:t.dataset.mid},'Зачтено! +1 балл');}
   if(a==='save-tg'){
     const tk=$('#tgToken').value.trim(), ch=$('#tgChat').value.trim(), rc=$('#tgReports').value.trim();
@@ -1272,10 +1300,12 @@ document.addEventListener('click',async e=>{
     if(pendingShots[eid]){const f=pendingShots[eid];t.disabled=true;
       t.textContent=f.size>5242880?'Загружаю файл ('+fmtMB(f.size)+')… не закрывай страницу':'Загружаю файл…';
       uploading=true;
+      onUploadRetry=n=>{t.textContent='Связь тормозит — пробую ещё раз ('+n+' из 5)…'};
       try{shot=await uploadShot(eid,f)}
-      catch(err){uploading=false;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
-        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Не удалось загрузить файл. Проверь интернет или пришли ссылкой')}
-      uploading=false}
+      catch(err){uploading=false;onUploadRetry=null;t.disabled=false;t.textContent='Отправить на проверку';console.error(err);
+        const why=err&&err.message==='timeout'?'сервер не отвечает':((err&&(err.message||err.error))||'неизвестно');
+        return toast(err&&err.message==='too_big'?'Файл больше 50 МБ — загрузи в облако и вставь ссылку':'Файл не загрузился ('+why+'). Отправь отчёт со ссылкой или попробуй с телефона через мобильный интернет')}
+      uploading=false; onUploadRetry=null}
     else{const cur=S.entries.find(x=>x.id===eid);shot=cur?cur.screenshot_url:null}
     if(!text&&!link&&!shot){t.disabled=false;t.textContent='Отправить на проверку';return toast('Заполни отчёт: текст, ссылку или файл')}
     delete pendingShots[eid]; delete pendingPrev[eid];
