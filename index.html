@@ -345,6 +345,10 @@ video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 .brow .bdate{font-size:12.5px;color:var(--muted);font-weight:600}
 .brow input[type="time"]{width:auto}
 .brow .bwin{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.admfix{margin-top:8px;padding:10px 12px;border:1px dashed var(--brand);border-radius:10px;background:var(--brand-soft);display:flex;flex-direction:column;gap:8px}
+.admfix-h{font-size:12.5px;font-weight:800;color:var(--brand-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.admfix-c{font-size:13px;padding:7px 10px}
+.admfix-b{display:flex;gap:6px;flex-wrap:wrap}
 .bpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;padding:10px 12px;border:1px dashed #E4BE5C;border-radius:10px;background:var(--surface-2)}
 .bpick select{width:auto;flex:1;min-width:220px}
 .bsublist{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line)}
@@ -1022,8 +1026,20 @@ function showDayModal(mgrId,dayIdx){
   const ents=dayEntries(mgrId,dayIdx);
   let h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="font-size:18px">'+fmtLong(iso)+', '+fmtWD(iso)+'</h3>'
     +'<button class="btn ghost sm" data-action="close-day">Закрыть</button></div>';
-  h+= ents.length?'<div class="taskstack">'+ents.map(e=>taskBlock(e,false)).join('')+'</div>':'<div class="note">Заданий нет.</div>';
-  const ov=document.createElement('div');ov.className='reveal-ov';
+  const adm=e=>{
+    if(AUTH.role!=='admin')return '';
+    const cat=e.kind==='cat', spec=e.kind==='special';
+    const plus=cat?'+2 балла':spec?'подарок 🎁':'+1 балл';
+    return '<div class="admfix"><div class="admfix-h">🛡️ Решение администратора · сейчас: '+statusPill(e)+'</div>'
+      +'<input class="admfix-c" id="admc_'+e.id+'" placeholder="Комментарий (необязательно), напр. «принято по скрину в личке»" value="'+esc(e.review_comment||'')+'">'
+      +'<div class="admfix-b">'
+      +(e.review!=='approved'?'<button class="btn sm good" data-action="admin-fix" data-eid="'+e.id+'" data-dec="approved" data-mid="'+mgrId+'" data-day="'+dayIdx+'">✅ Засчитать ('+plus+')</button>':'')
+      +(e.review!=='rejected'?'<button class="btn sm danger" data-action="admin-fix" data-eid="'+e.id+'" data-dec="rejected" data-mid="'+mgrId+'" data-day="'+dayIdx+'">❌ Не засчитано'+(cat?' (−2)':'')+'</button>':'')
+      +(e.review!=='none'?'<button class="btn sm ghost" data-action="admin-fix" data-eid="'+e.id+'" data-dec="none" data-mid="'+mgrId+'" data-day="'+dayIdx+'">↩ Сбросить статус</button>':'')
+      +'</div></div>';
+  };
+  h+= ents.length?'<div class="taskstack">'+ents.map(e=>'<div>'+taskBlock(e,false)+adm(e)+'</div>').join('')+'</div>':'<div class="note">Заданий нет.</div>';
+  const ov=document.createElement('div');ov.className='reveal-ov';ov.id='dayOv';
   ov.innerHTML='<div class="reveal-modal day-modal">'+h+'</div>';
   document.body.appendChild(ov);
   const close=()=>ov.remove();
@@ -1190,6 +1206,18 @@ document.addEventListener('click',async e=>{
   if(a==='open-cab'){ if(AUTH.role==='admin'){UI.view='cabinet';UI.managerId=t.dataset.id;persist();render();scrollTo(0,0);} return}
   if(a==='pick'){UI.managerId=t.dataset.id;persist();render();return}
   if(a==='view-day'){showDayModal(t.dataset.mid,+t.dataset.day);return}
+  if(a==='admin-fix'){
+    const e=S.entries.find(x=>x.id===t.dataset.eid); if(!e)return;
+    const dec=t.dataset.dec, who=mgrName(e.manager_id), nm=(taskTitle(e)||e.task_text||'').slice(0,60);
+    const txt=dec==='approved'?'Засчитать':dec==='rejected'?'Отметить «не засчитано»':'Сбросить статус';
+    if(!confirm(txt+'?\n\n'+who+' · '+fmtLong(e.edate)+'\n«'+nm+'»'))return;
+    const cEl=document.getElementById('admc_'+e.id), comment=cEl?cEl.value.trim():'';
+    t.disabled=true;
+    const r=await act('admin_review',{p_token:AUTH.token,p_entry:e.id,p_decision:dec,p_comment:comment},dec==='approved'?'Засчитано ✅':dec==='rejected'?'Отмечено: не засчитано':'Статус сброшен',{retry:true,timeout:9000});
+    const ov=document.getElementById('dayOv'); if(ov)ov.remove();
+    if(r)showDayModal(t.dataset.mid,+t.dataset.day);     // открыть заново с новым статусом
+    return;
+  }
   if(a==='close-day')return;
   if(a==='reassign-cat'){showReassignModal(t.dataset.eid);return}
   if(a==='do-reassign'){
