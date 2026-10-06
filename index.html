@@ -349,6 +349,7 @@ video.rev-thumb{max-width:240px;max-height:180px;cursor:auto;background:#000}
 .admfix-h{font-size:12.5px;font-weight:800;color:var(--brand-2);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .admfix-c{font-size:13px;padding:7px 10px}
 .admfix-b{display:flex;gap:6px;flex-wrap:wrap}
+.rev-item.rev-cat{background:linear-gradient(90deg,rgba(226,106,90,.08),transparent 60%);border-left:4px solid #E26A5A}
 .bpick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;padding:10px 12px;border:1px dashed #E4BE5C;border-radius:10px;background:var(--surface-2)}
 .bpick select{width:auto;flex:1;min-width:220px}
 .bsublist{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;margin-top:4px;padding-left:8px;border-left:2px solid var(--line)}
@@ -1056,17 +1057,17 @@ function viewReview(){
   let out='<div class="section-h"><h2>Проверка отчётов</h2><span class="hint">'+items.length+' на проверке</span></div>';
   if(!items.length){out+='<div class="card empty"><div class="big">Всё проверено 🎉</div><div>Новые отчёты появятся здесь, как только менеджеры их отправят.</div></div>';return out}
   out+='<div class="card lb">'+items.map(({e,m})=>{
-    const spec=e.kind==='special';
-    return '<div class="rev-item">'+avaTag(m)
+    const spec=e.kind==='special', cat=e.kind==='cat';
+    return '<div class="rev-item'+(cat?' rev-cat':'')+'">'+avaTag(m)
       +'<div class="rev-body"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+esc(m.full_name)+'</b>'
-      +'<span class="pill '+(spec?'spec':'reg')+'">'+(spec?'🎁 Особая':'Ежедневная')+'</span>'
+      +'<span class="pill '+(cat?'cat':spec?'spec':'reg')+'">'+(cat?'🐱 Кот в мешке · +2 / −2':spec?'🎁 Бонус':'Ежедневная')+'</span>'
       +'<span class="note">'+fmtLong(e.edate)+'</span></div>'
       +(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="rt" style="font-weight:600">'+esc(e.task_text)+'</div>'
       +(e.report_text?'<div class="rt">'+esc(e.report_text)+'</div>':'<div class="note">— без текста —</div>')
       +(e.report_link?'<div>'+linkify(e.report_link)+'</div>':'')
       +(e.screenshot_url?mediaHTML(e.screenshot_url,'rev-thumb',true):'')
       +'<textarea id="revc_'+e.id+'" class="revcomment" rows="2" placeholder="Комментарий менеджеру (необязательно) — увидит в кабинете"></textarea>'
-      +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(spec?' 🎁':' +1')+'</button>'
+      +'</div><div class="rev-actions"><button class="btn good sm" data-action="review" data-eid="'+e.id+'" data-dec="approved">Зачесть'+(cat?' +2':spec?' 🎁':' +1')+'</button>'
       +'<button class="btn danger sm" data-action="review" data-eid="'+e.id+'" data-dec="rejected">Отклонить</button></div></div>';
   }).join('')+'</div>';
   return out;
