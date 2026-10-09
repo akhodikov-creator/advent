@@ -453,7 +453,8 @@ function blitzWindowNow(){   // окно — ровно 30 минут от ст�
   return m>=st && m<st+30;                                       // расписание start_time..+30мин ЕКБ
 }
 function blitzActive(){return !!blitzForToday() && blitzWindowNow()}
-function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(b.winner_manager_id===mgrId)n++});return n}
+function bzWinners(b){if(!b)return [];const w=Array.isArray(b.winner_ids)?b.winner_ids.filter(Boolean):[];return w.length?w:(b.winner_manager_id?[b.winner_manager_id]:[])}
+function blitzWins(mgrId){let n=0;(S.blitz||[]).forEach(b=>{if(bzWinners(b).indexOf(mgrId)>=0)n++});return n}
 function splitTitle(str){str=str||'';const i=str.indexOf('|');return i<0?{title:'',text:str.trim()}:{title:str.slice(0,i).trim(),text:str.slice(i+1).trim()}}
 function mgrName(id){const m=S.managers.find(x=>x.id===id);return m?m.full_name:'—'}
 function taskTitle(e){if(!e)return '';const pool=e.kind==='special'?S.sp:e.kind==='cat'?S.cat:S.reg;const m=S.managers.find(x=>x.id===e.manager_id),dir=m?(m.direction||''):'';const hit=(pool||[]).find(x=>x.body===e.task_text&&(x.direction||'')===dir)||(pool||[]).find(x=>x.body===e.task_text);return hit&&hit.title?hit.title:''}
@@ -857,7 +858,7 @@ function viewTeam(lead){
     const subs=(S.blitz_sub||[]).filter(x=>x.edate===day&&ids.indexOf(x.manager_id)>=0);
     bzh='<div class="card team-blitz"><div class="eyebrow">⚡ Блиц дня'+(bz.start_time?' · '+String(bz.start_time).slice(0,5)+' ЕКБ':'')+'</div>'
       +(t.title?'<div class="ttitle">'+esc(t.title)+'</div>':'')+'<div class="task">'+esc(t.text)+'</div>'
-      +'<div class="note">Отчёты команды: '+(subs.length?subs.map(x=>esc(mgrName(x.manager_id).split(' ')[0])+(bz.winner_manager_id===x.manager_id?' 🏆':'')).join(', '):'пока никто')+'</div></div>';}
+      +'<div class="note">Отчёты команды: '+(subs.length?subs.map(x=>esc(mgrName(x.manager_id).split(' ')[0])+(bzWinners(bz).indexOf(x.manager_id)>=0?' 🏆':'')).join(', '):'пока никто')+'</div></div>';}
   const rank=m=>{const ri=rankInfo(m);return ri?ri.rank+' место · '+ri.points+' '+ballWord(ri.points):''};
   const cards=members.map(m=>{
     const es=dayEntries(m.id,di).slice().sort((a,b)=>(a.kind==='regular'?1:0)-(b.kind==='regular'?1:0));
@@ -1143,10 +1144,14 @@ function catCard(){
 }
 function blitzCard(){
   const eff=effToday(), activeToday=blitzActive();
-  const rows=workdays().map(iso=>{
+  const pastDays=workdays().filter(iso=>iso<eff), showPast=!!UI.bzShowPast;
+  const rows=workdays().filter(iso=>showPast||iso>=eff).map(iso=>{
     const b=(S.blitz||[]).find(x=>x.edate===iso)||{};
+    const wins=bzWinners(b);
     const tm=((b.start_time||'15:00:00')+'').slice(0,5);
-    const winner=b.winner_manager_id?'<div class="bwin"><span class="pill done">🏆 '+esc(mgrName(b.winner_manager_id))+'</span> <button class="btn sm ghost" data-action="clear-blitz" data-date="'+iso+'">сбросить</button></div>':'';
+    const winner=wins.length?'<div class="bwin">'+wins.map(id=>'<span class="pill done">🏆 '+esc(mgrName(id))
+        +' <button class="bw-x" style="padding:0 4px" data-action="unaward-blitz" data-date="'+iso+'" data-mid="'+id+'" title="Убрать победителя">✕</button></span>').join(' ')
+        +(wins.length>1?' <button class="btn sm ghost" data-action="clear-blitz" data-date="'+iso+'">сбросить всех</button>':'')+'</div>':'';
     const launch = iso===eff
       ? '<div class="bwin">'+(activeToday
           ? '<span class="pill review">⚡ идёт сейчас</span> <button class="btn sm danger" data-action="stop-blitz" data-date="'+iso+'">Остановить</button>'
@@ -1155,8 +1160,8 @@ function blitzCard(){
     const subs=(S.blitz_sub||[]).filter(x=>x.edate===iso).slice().sort((a,c)=>(a.submitted_at<c.submitted_at?-1:1));
     let subsHtml='';
     if(subs.length){
-      subsHtml='<div class="bsublist"><div class="note" style="font-weight:700;color:var(--ink)">Отчёты (по порядку отправки) — засчитай первого, кто сделал правильно:</div>'
-        +subs.map((sub,idx)=>{const isWin=b.winner_manager_id===sub.manager_id;
+      subsHtml='<div class="bsublist"><div class="note" style="font-weight:700;color:var(--ink)">Отчёты (по порядку отправки) — засчитай тех, кто сделал правильно (можно нескольких):</div>'
+        +subs.map((sub,idx)=>{const isWin=wins.indexOf(sub.manager_id)>=0;
           return '<div class="bsub'+(isWin?' win':'')+'"><div class="bsub-n">'+(idx+1)+'</div>'
             +'<div class="bsub-body"><b>'+esc(mgrName(sub.manager_id))+'</b> <span class="note">'+fmtTime(sub.submitted_at)+'</span>'
             +'<div class="rt">'+esc(sub.report)+'</div></div>'
@@ -1164,10 +1169,10 @@ function blitzCard(){
             +'</div>';}).join('')+'</div>';
     }
     let pick='';
-    if(iso<=eff&&b.body&&!b.winner_manager_id){
-      const opts=players().slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'))
+    if(iso<=eff&&b.body){
+      const opts=players().filter(m=>wins.indexOf(m.id)<0).slice().sort((x,y)=>x.full_name.localeCompare(y.full_name,'ru'))
         .map(m=>'<option value="'+m.id+'">'+esc(m.full_name)+' · '+esc(m.direction||'')+'</option>').join('');
-      pick='<div class="bpick"><span class="note">Победитель без отчёта (например, «кто больше за 30 минут»):</span>'
+      pick='<div class="bpick"><span class="note">'+(wins.length?'Добавить ещё победителя':'Победитель без отчёта (например, «кто больше за 30 минут»)')+':</span>'
         +'<select data-bzpick="'+iso+'"><option value="">— выбери участника —</option>'+opts+'</select>'
         +'<button class="btn sm good" data-action="award-blitz-pick" data-date="'+iso+'">🏆 Назначить +1</button></div>';
     }
@@ -1176,7 +1181,9 @@ function blitzCard(){
       +'<input type="time" data-bztime="'+iso+'" value="'+tm+'" title="Время запуска (ЕКБ)">'
       +'<button class="btn sm" data-action="save-blitz" data-date="'+iso+'">Сохранить</button>'+winner+launch+subsHtml+pick+'</div>';
   }).join('');
-  return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'
+  const pastToggle=pastDays.length?'<button class="btn sm ghost" data-action="bz-past" style="margin-bottom:10px">'
+      +(showPast?'▴ Скрыть прошедшие дни':'▾ Показать прошедшие дни ('+pastDays.length+')')+'</button>':'';
+  return '<div class="card"><h3>⚡ Блиц-задания по дням</h3>'+pastToggle
     +'<div class="note" style="margin-bottom:10px">Одинаково для всех направлений. Всплывает у всех автоматически в указанное время (по умолчанию 15:00 ЕКБ) — время можно менять для каждого дня. Окно 30 минут; первый, кто отправит отчёт, получает +1 балл. Кнопка <b>«Запустить сейчас»</b> — для теста: блиц немедленно всплывёт у всех на 30 минут.</div>'
     +'<div class="blist">'+rows+'</div></div>';
 }
@@ -1290,7 +1297,7 @@ document.addEventListener('click',async e=>{
     const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
     return act('admin_set_blitz',{p_token:AUTH.token,p_edate:iso,p_body:el?el.value:'',p_start:tel?tel.value:'15:00'},'Блиц на '+fmtLong(iso)+' сохранён');
   }
-  if(a==='clear-blitz'){if(confirm('Сбросить победителя блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
+  if(a==='clear-blitz'){if(confirm('Сбросить всех победителей блица на '+fmtLong(t.dataset.date)+'?'))return act('admin_clear_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Победитель сброшен');return}
   if(a==='launch-blitz'){
     const iso=t.dataset.date, el=document.querySelector('[data-bz="'+iso+'"]'), tel=document.querySelector('[data-bztime="'+iso+'"]');
     const body=el?el.value.trim():'';
@@ -1302,6 +1309,11 @@ document.addEventListener('click',async e=>{
     return;
   }
   if(a==='stop-blitz'){return act('admin_stop_blitz',{p_token:AUTH.token,p_edate:t.dataset.date},'Блиц остановлен');}
+  if(a==='bz-past'){UI.bzShowPast=!UI.bzShowPast;persist();render();return}
+  if(a==='unaward-blitz'){
+    if(!confirm('Убрать победителя блица '+fmtLong(t.dataset.date)+': '+mgrName(t.dataset.mid)+'? Балл снимется.'))return;
+    return act('admin_blitz_unaward',{p_token:AUTH.token,p_edate:t.dataset.date,p_manager:t.dataset.mid},'Победитель убран',{retry:true,timeout:9000});
+  }
   if(a==='award-blitz-pick'){
     const sel=document.querySelector('select[data-bzpick="'+t.dataset.date+'"]'), mid=sel&&sel.value;
     if(!mid)return toast('Выбери участника');
@@ -1630,9 +1642,10 @@ function renderBlitzWidget(){
   w.className='';
   const bz=splitTitle(b.body);
   let h='<div class="bw-top"><div class="bw-head">⚡ БЛИЦ-ЗАДАНИЕ</div><button class="bw-x" data-action="bz-min" title="Свернуть">свернуть ▴</button></div>'+(bz.title?'<div class="ttitle">'+esc(bz.title)+'</div>':'')+'<div class="bw-task">'+esc(bz.text)+'</div>';
-  if(b.winner_manager_id){
-    const me=AUTH.role==='manager'&&AUTH.manager_id===b.winner_manager_id;
-    h+='<div class="bw-winner">🏆 Зачтено первым: <b>'+esc(mgrName(b.winner_manager_id))+'</b>'+(me?' — это ты! +1 балл':'')+'</div>';
+  const wins=bzWinners(b);
+  if(wins.length){
+    const me=AUTH.role==='manager'&&wins.indexOf(AUTH.manager_id)>=0;
+    h+='<div class="bw-winner">🏆 '+(wins.length>1?'Победители':'Победитель')+': <b>'+wins.map(id=>esc(mgrName(id))).join(', ')+'</b>'+(me?' — ты среди них! +1 балл':'')+'</div>';
   }else if(AUTH.role==='manager'&&meLead()){
     h+='<div class="bw-hint">Блиц для менеджеров твоей команды — подгони ребят! Кто отправил отчёт, видно во вкладке «Моя команда».</div>';
   }else if(AUTH.role==='manager'){
