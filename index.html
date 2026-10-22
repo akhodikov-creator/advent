@@ -544,6 +544,7 @@ function loadAll(){
       if(!data||!data.settings||!Array.isArray(data.managers))throw new Error('bootstrap: пустой ответ');
       if(!data.managers.length&&S.managers&&S.managers.length)throw new Error('bootstrap: нет участников — игнорируем');
       S.settings=data.settings; S.managers=data.managers; S.reg=data.reg||[]; S.sp=data.sp||[]; S.cat=data.cat||[]; S.blitz=data.blitz||[]; S.blitz_sub=data.blitz_sub||[]; S.entries=data.entries||[];
+      if(AUTH.role==='admin'){try{const ab=await rpc('admin_blitz_all',{p_token:AUTH.token},{retry:true,timeout:9000});if(ab&&ab.ok&&Array.isArray(ab.blitz))S.blitz=ab.blitz}catch(e){}}
       rebuildIndex(); loading=false; lastLoadAt=Date.now(); setNet(true); cacheSave();
     }catch(e){setNet(false);throw e}
     finally{loadP=null}
@@ -854,6 +855,9 @@ function viewTeam(lead){
   // блиц дня
   const bz=(S.blitz||[]).find(b=>b.edate===day&&b.body&&b.body.trim());
   let bzh='';
+  const bzHidden=!bz&&(S.blitz||[]).find(b=>b.edate===day&&b.has_body);
+  if(bzHidden)bzh='<div class="card team-blitz"><div class="eyebrow">⚡ Блиц дня'+(bzHidden.start_time?' · '+String(bzHidden.start_time).slice(0,5)+' ЕКБ':'')+'</div>'
+    +'<div class="note">Задание блица откроется в момент старта — одновременно для всех.</div></div>';
   if(bz){const t=splitTitle(bz.body), ids=members.map(m=>m.id);
     const subs=(S.blitz_sub||[]).filter(x=>x.edate===day&&ids.indexOf(x.manager_id)>=0);
     bzh='<div class="card team-blitz"><div class="eyebrow">⚡ Блиц дня'+(bz.start_time?' · '+String(bz.start_time).slice(0,5)+' ЕКБ':'')+'</div>'
@@ -1714,7 +1718,18 @@ function updateCatTimers(){
     b.textContent='🫳 Скинуть кота другому · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
   });
 }
+let bzFetchAt=0;
+function bzMaybeFetch(){   // текст блица сервер отдаёт только с момента старта — подтягиваем его, когда пришло время
+  if(AUTH.role==='admin')return;
+  const b=(S.blitz||[]).find(x=>x.edate===effToday());
+  if(!b||!b.has_body||(b.body&&b.body.trim()))return;
+  const y=yektNow(),m=y.getHours()*60+y.getMinutes(),st=parseHHMM(b.start_time);
+  if(m<st||m>=st+30)return;
+  if(Date.now()-bzFetchAt<15000)return;
+  bzFetchAt=Date.now(); loadAll().then(renderBg).catch(()=>{});
+}
 function blitzTick(){   // каждую секунду; сбой одного таймера не должен мешать закрыть блиц
+  try{bzMaybeFetch()}catch(e){}
   try{updateBlitzTimer()}catch(e){} try{updateCatTimers()}catch(e){}
   const active=blitzActive(),w=document.getElementById('blitzWidget');
   if(active){ if(!w)renderBlitzWidget(); maybeShowBlitzPopup(); }
