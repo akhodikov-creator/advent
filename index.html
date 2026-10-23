@@ -616,7 +616,7 @@ function errMsg(code){return({auth:'Нужно войти заново',forbidde
   self:'Нельзя передать самому себе',
   no_blitz:'Блиц-задание сейчас не активно',
   blitz_closed:'Окно блица закрыто (15:00–15:30 ЕКБ)',
-  reassign_expired:'Передать кота можно только 30 минут после открытия',
+  reassign_expired:'Передать кота можно только 30 минут после открытия',reassign_noon:'Передать кота можно только до 12:00 по Екатеринбургу',
   no_body:'Сначала впиши задание для этого дня',
   already:'Отчёт по блицу уже отправлен — изменить его нельзя',too_often:'Сообщение уже отправлено — подожди немного',
   too_long:'Слишком длинное сообщение — сократи до 1500 символов'})[code]||'Не получилось'}
@@ -979,7 +979,7 @@ function taskBlock(e,interactive){
       :'<div class="locktask">🔒 Ещё не открыта</div>';
   }else{
     inner=(taskTitle(e)?'<div class="ttitle">'+esc(taskTitle(e))+'</div>':'')+'<div class="task">'+esc(e.task_text)+'</div>';
-    if(cat)inner+='<div class="catwarn">⚠️ Супер-сложное задание. Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Можно один раз скинуть кота другому.</div>';
+    if(cat)inner+='<div class="catwarn">⚠️ Супер-сложное задание. Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Можно один раз скинуть кота другому — в течение 30 минут после открытия, но не позже 12:00 ЕКБ.</div>';
     if(e.review==='approved'){
       inner+='<span class="pill done">✓ '+(cat?'Зачтено +2 балла':spec?'Подарок засчитан 🎁':'Зачтено +1 балл')+'</span>';
       if(e.review_comment)inner+=commentBox(e.review_comment);
@@ -995,10 +995,11 @@ function taskBlock(e,interactive){
     }
     if(cat&&interactive&&rel==='today'&&e.review!=='approved'){
       const left=(e.reassigns_left||0)>0;
-      const inWin=e.opened_at && (Date.now()-new Date(e.opened_at).getTime()<=30*60000);
-      if(left&&inWin){const dl=new Date(e.opened_at).getTime()+30*60000,ss=Math.max(0,Math.floor((dl-Date.now())/1000));
-        inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'" data-deadline="'+dl+'">🫳 Скинуть кота другому · '+Math.floor(ss/60)+':'+String(ss%60).padStart(2,'0')+'</button>';}
-      else if(left&&!inWin) inner+='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';
+      const dl=catPassDeadline(e), inWin=!!e.opened_at && Date.now()<dl;
+      if(left&&inWin){const ss=Math.max(0,Math.floor((dl-Date.now())/1000));
+        inner+='<button class="btn sm catgive" data-action="reassign-cat" data-eid="'+e.id+'" data-deadline="'+dl+'">🫳 Скинуть кота другому · '+Math.floor(ss/60)+':'+String(ss%60).padStart(2,'0')+'</button>'
+          +'<div class="note">Передать можно 30 минут после открытия, но не позже 12:00 по Екатеринбургу.</div>';}
+      else if(left&&!inWin) inner+='<div class="note">'+catPassClosedText(e)+'</div>';
       else inner+='<div class="note">Кота уже нельзя передать (переназначение использовано).</div>';
     }
   }
@@ -1564,7 +1565,7 @@ function showCatReveal(e){
     +'<div class="catrv-title">🐱 КОТ В МЕШКЕ!</div>'+(taskTitle(e)?'<div class="catrv-name">«'+esc(taskTitle(e))+'»</div>':'')
     +'<div class="catrv-emoji">🙀</div>'
     +'<div class="catrv-task">'+esc(e.task_text)+'</div>'
-    +'<div class="catrv-warn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>'
+    +'<div class="catrv-warn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому — 30 минут после открытия, но не позже 12:00 ЕКБ.</div>'
     +'<button class="btn primary catrv-btn" data-action="close-catrv" disabled>Смотри внимательно… 5</button>'
     +'</div>';
   document.body.appendChild(ov);
@@ -1598,7 +1599,7 @@ function showRevealModal(e){
   const pill=cat?'<span class="pill cat">🐱 КОТ В МЕШКЕ · +2 / −2</span>'
     :spec?'<span class="pill spec">🎁 Бонус — подарок</span>'
     :'<span class="pill reg">Задача дня — +1 балл</span>';
-  const warn=cat?'<div class="catwarn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому.</div>':'';
+  const warn=cat?'<div class="catwarn">⚠️ Сделаешь — <b>+2 балла</b>. Провалишь — <b>−2 балла</b>. Один раз можно скинуть кота другому — 30 минут после открытия, но не позже 12:00 ЕКБ.</div>':'';
   const btn=cat?'ПРИНЯТЬ ВЫЗОВ 😼':'ПОГНАЛИ 🚀';
   const ov=document.createElement('div');ov.className='reveal-ov rv-boom'+(cat?' cat-boom':spec?' spec':'');
   ov.innerHTML='<div class="reveal-modal rv-big '+variant+'">'
@@ -1710,10 +1711,22 @@ function showBlitzPopup(b){
   const close=()=>ov.remove();
   ov.addEventListener('click',ev=>{if(ev.target===ov||ev.target.closest('[data-action="close-reveal"]'))close()});
 }
+// Кота можно передать 30 минут после открытия, но не позже 12:00 ЕКБ (в тест-режиме — без ограничения 12:00)
+function catNoonMs(iso){const p=String(iso).split('-').map(Number);return Date.UTC(p[0],p[1]-1,p[2],7,0,0)}   // 12:00 ЕКБ = 07:00 UTC
+function catPassDeadline(e){
+  if(!e||!e.opened_at)return 0;
+  const byOpen=new Date(e.opened_at).getTime()+30*60000;
+  if(S.settings&&S.settings.today_override)return byOpen;
+  return Math.min(byOpen,catNoonMs(e.edate));
+}
+function catPassClosedText(e){
+  const noon=!(S.settings&&S.settings.today_override)&&e&&e.opened_at&&catNoonMs(e.edate)<=new Date(e.opened_at).getTime()+30*60000;
+  return noon?'Передать кота уже нельзя — передача возможна только до 12:00 по Екатеринбургу.':'Передать кота уже нельзя — прошло 30 минут после открытия.';
+}
 function updateCatTimers(){
   document.querySelectorAll('.catgive[data-deadline]').forEach(b=>{
     const left=(+b.dataset.deadline)-Date.now();
-    if(left<=0){b.outerHTML='<div class="note">Передать кота уже нельзя — прошло 30 минут после открытия.</div>';return;}
+    if(left<=0){const e=S.entries.find(x=>x.id===b.dataset.eid);b.outerHTML='<div class="note">'+catPassClosedText(e)+'</div>';return;}
     const s=Math.floor(left/1000);
     b.textContent='🫳 Скинуть кота другому · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
   });
